@@ -24,7 +24,7 @@ interface MissionResult {
   status: string;
   objective: string;
   factory: string;
-  risk_level: string;
+  risk_tier: string; // canônico (era risk_level)
   estimated_cost: number;
 }
 

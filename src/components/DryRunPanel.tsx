@@ -11,7 +11,7 @@ interface DryRunStep {
 interface DryRunResult {
   steps: DryRunStep[];
   estimatedCostUsd: number;
-  riskLevel: string;
+  riskTier: string; // canônico (era riskLevel)
 }
 
 interface DryRunPanelProps {
@@ -62,7 +62,7 @@ export default function DryRunPanel({
               { id: "s2", label: "Content generation", estimated_cost: 0.003 },
             ],
             estimatedCostUsd: 0.005,
-            riskLevel: riskLevel ?? "R1",
+            riskTier: riskLevel ?? "R1",
           });
         }
       } finally {
@@ -76,7 +76,7 @@ export default function DryRunPanel({
     };
   }, [objective, factory, riskLevel]);
 
-  const effectiveRisk = result?.riskLevel ?? riskLevel ?? "R1";
+  const effectiveRisk = result?.riskTier ?? riskLevel ?? "R1";
   const badgeStyle = RISK_BADGE_STYLE[effectiveRisk] ?? RISK_BADGE_STYLE.R1;
   const isHighRisk = effectiveRisk === "R2" || effectiveRisk === "R3";
 

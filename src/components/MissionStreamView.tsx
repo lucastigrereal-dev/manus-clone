@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useMissionStream } from "@/hooks/useMissionStream"
+import { normalizeEvent } from "@/lib/missionEvents"
 import WaveProgressCard from "@/components/WaveProgressCard"
 import AgentLane from "@/components/AgentLane"
 import RollbackButton from "@/components/RollbackButton"
@@ -76,6 +77,9 @@ function riskBadgeStyle(riskLevel: string): React.CSSProperties {
 
 export default function MissionStreamView({ missionId, onClose }: Props) {
   const { events, status, error } = useMissionStream(missionId)
+  // Normaliza no boundary: tolera o shape canônico do Core (risk_tier, nested
+  // `data`, event_type lifecycle) E o shape sintético do mock. Ver src/lib/missionEvents.ts
+  const norm = useMemo(() => events.map(normalizeEvent), [events])
   const addToast = useUiStore((s) => s.addToast)
   const [agentsExpanded, setAgentsExpanded] = useState(false)
   const [approvalLoading, setApprovalLoading] = useState(false)
@@ -108,41 +112,38 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
     const waveMap = new Map<string, WaveState>()
     const waveOrder: string[] = []
 
-    for (const evt of events) {
+    for (const evt of norm) {
       if (evt.type === "wave_start") {
-        const waveId = evt.waveId as string
-        if (!waveMap.has(waveId)) {
+        const waveId = evt.waveId
+        if (waveId && !waveMap.has(waveId)) {
           waveMap.set(waveId, {
             id: waveId,
-            label: (evt.label as string) ?? waveId,
+            label: evt.label ?? waveId,
             steps: [],
             status: "running",
           })
           waveOrder.push(waveId)
         }
       } else if (evt.type === "step_start") {
-        const waveId = evt.waveId as string
-        const wave = waveMap.get(waveId)
-        if (wave) {
+        const wave = evt.waveId ? waveMap.get(evt.waveId) : undefined
+        if (wave && evt.stepId) {
           wave.steps.push({
-            id: evt.stepId as string,
-            label: (evt.label as string) ?? (evt.stepId as string),
+            id: evt.stepId,
+            label: evt.label ?? evt.stepId,
             progress: 0,
             status: "running",
           })
         }
       } else if (evt.type === "step_progress") {
-        const waveId = evt.waveId as string
-        const wave = waveMap.get(waveId)
+        const wave = evt.waveId ? waveMap.get(evt.waveId) : undefined
         if (wave) {
           const step = wave.steps.find((s) => s.id === evt.stepId)
-          if (step) {
-            step.progress = (evt.progress as number) ?? step.progress
+          if (step && evt.progress != null) {
+            step.progress = evt.progress
           }
         }
       } else if (evt.type === "step_done") {
-        const waveId = evt.waveId as string
-        const wave = waveMap.get(waveId)
+        const wave = evt.waveId ? waveMap.get(evt.waveId) : undefined
         if (wave) {
           const step = wave.steps.find((s) => s.id === evt.stepId)
           if (step) {
@@ -151,8 +152,7 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
           }
         }
       } else if (evt.type === "wave_done") {
-        const waveId = evt.waveId as string
-        const wave = waveMap.get(waveId)
+        const wave = evt.waveId ? waveMap.get(evt.waveId) : undefined
         if (wave) {
           wave.status = "done"
         }
@@ -160,15 +160,15 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
     }
 
     return waveOrder.map((id) => waveMap.get(id)!)
-  }, [events])
+  }, [norm])
 
   // Derive agent lanes from events
   const agentLanes = useMemo<AgentState[]>(() => {
     const agentMap = new Map<string, AgentState>()
     const agentOrder: string[] = []
 
-    for (const evt of events) {
-      const agentName = evt.agent as string | undefined
+    for (const evt of norm) {
+      const agentName = evt.agent
       if (!agentName) continue
 
       if (!agentMap.has(agentName)) {
@@ -178,10 +178,10 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
 
       const agentState = agentMap.get(agentName)!
 
-      if (evt.type === "step_start") {
+      if (evt.type === "step_start" && evt.stepId) {
         agentState.steps.push({
-          id: evt.stepId as string,
-          label: (evt.label as string) ?? (evt.stepId as string),
+          id: evt.stepId,
+          label: evt.label ?? evt.stepId,
           status: "running",
         })
         agentState.isActive = true
@@ -196,42 +196,44 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
     }
 
     return agentOrder.map((name) => agentMap.get(name)!)
-  }, [events])
+  }, [norm])
 
   // Derive pending approval from events (most recent undismissed one)
   const pendingApproval = useMemo<PendingApproval | null>(() => {
-    for (let i = events.length - 1; i >= 0; i--) {
-      const evt = events[i]
-      if (evt.type === "HumanApprovalRequired") {
-        const approvalId = evt.approvalId as string
+    for (let i = norm.length - 1; i >= 0; i--) {
+      const evt = norm[i]
+      // Core canônico: needs_approval (status) / HumanApprovalRequired (sintético)
+      if (evt.type === "HumanApprovalRequired" || evt.type === "needs_approval") {
+        const approvalId = evt.approvalId ?? evt.missionId ?? `apr_${i}`
         if (!dismissedApprovals.has(approvalId)) {
           return {
             approvalId,
-            summary: (evt.summary as string) ?? "",
-            riskLevel: (evt.riskLevel as string) ?? "R1",
+            summary: evt.summary ?? "",
+            riskLevel: evt.riskTier ?? "R1",
           }
         }
       }
     }
     return null
-  }, [events, dismissedApprovals])
+  }, [norm, dismissedApprovals])
 
   // Derive failure class from error events
   const failureClass = useMemo<string | null>(() => {
-    for (let i = events.length - 1; i >= 0; i--) {
-      const evt = events[i]
+    for (let i = norm.length - 1; i >= 0; i--) {
+      const evt = norm[i]
+      // Core canônico: failed → mapeado para mission_error pelo normalizador
       if (
         evt.type === "step_error" ||
         evt.type === "mission_error" ||
         evt.type === "error"
       ) {
-        return (evt.errorClass as string | undefined) ?? "UNKNOWN"
+        return evt.errorClass ?? "UNKNOWN"
       }
     }
     return null
-  }, [events])
+  }, [norm])
 
-  const hasMissionDone = events.some((e) => e.type === "mission_done")
+  const hasMissionDone = norm.some((e) => e.type === "mission_done")
   const hasAgents = agentLanes.length > 0
 
   const banner = statusBanner(status)

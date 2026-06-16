@@ -5,21 +5,27 @@ export const dynamic = 'force-dynamic'
 
 export type MissionEvent = { type: string; [key: string]: unknown }
 
+// ⚠️ DEMO-ONLY. O Core canônico (src/first_missions/event_emitter.py) emite
+// apenas eventos de CICLO DE VIDA (started|completed|failed|dry_run) com payload
+// aninhado em `data` e campo de risco `risk_tier`. Os tipos wave_*/step_* abaixo
+// NÃO existem no Core hoje — a granularidade de waves/steps/agentes (EVO-022..025)
+// é UI à frente do backend. Campos em snake_case canônico (risk_tier, payload em
+// `data`) para que o normalizador (src/lib/missionEvents.ts) leia mock e Core igual.
 const MOCK_EVENTS: MissionEvent[] = [
-  { type: 'wave_start', waveId: 'w1', label: 'Research' },
-  { type: 'step_start', stepId: 's1', label: 'Fetching data', waveId: 'w1', agent: 'hermes' },
-  { type: 'step_progress', stepId: 's1', progress: 50, waveId: 'w1' },
-  { type: 'step_done', stepId: 's1', waveId: 'w1', agent: 'hermes' },
-  { type: 'step_start', stepId: 's2', label: 'Indexing sources', waveId: 'w1', agent: 'hermes' },
-  { type: 'step_done', stepId: 's2', waveId: 'w1', agent: 'hermes' },
-  { type: 'wave_done', waveId: 'w1', label: 'Research' },
-  { type: 'HumanApprovalRequired', approvalId: 'apr_MOCK001', summary: 'Publicar conteúdo em 3 contas Instagram', riskLevel: 'R2' },
-  { type: 'wave_start', waveId: 'w2', label: 'Analysis' },
-  { type: 'step_start', stepId: 's3', label: 'Processing results', waveId: 'w2', agent: 'muse' },
-  { type: 'step_done', stepId: 's3', waveId: 'w2', agent: 'muse' },
-  { type: 'step_start', stepId: 's4', label: 'Generating report', waveId: 'w2', agent: 'muse' },
-  { type: 'step_done', stepId: 's4', waveId: 'w2', agent: 'muse' },
-  { type: 'wave_done', waveId: 'w2', label: 'Analysis' },
+  { type: 'wave_start', event_id: 'mev_demo01', data: { wave_id: 'w1', label: 'Research' } },
+  { type: 'step_start', event_id: 'mev_demo02', data: { step_id: 's1', label: 'Fetching data', wave_id: 'w1', agent: 'hermes' } },
+  { type: 'step_progress', event_id: 'mev_demo03', data: { step_id: 's1', progress: 50, wave_id: 'w1' } },
+  { type: 'step_done', event_id: 'mev_demo04', data: { step_id: 's1', wave_id: 'w1', agent: 'hermes' } },
+  { type: 'step_start', event_id: 'mev_demo05', data: { step_id: 's2', label: 'Indexing sources', wave_id: 'w1', agent: 'hermes' } },
+  { type: 'step_done', event_id: 'mev_demo06', data: { step_id: 's2', wave_id: 'w1', agent: 'hermes' } },
+  { type: 'wave_done', event_id: 'mev_demo07', data: { wave_id: 'w1', label: 'Research' } },
+  { type: 'HumanApprovalRequired', event_id: 'mev_demo08', data: { approval_id: 'apr_MOCK001', summary: 'Publicar conteúdo em 3 contas Instagram', risk_tier: 'R2' } },
+  { type: 'wave_start', event_id: 'mev_demo09', data: { wave_id: 'w2', label: 'Analysis' } },
+  { type: 'step_start', event_id: 'mev_demo10', data: { step_id: 's3', label: 'Processing results', wave_id: 'w2', agent: 'muse' } },
+  { type: 'step_done', event_id: 'mev_demo11', data: { step_id: 's3', wave_id: 'w2', agent: 'muse' } },
+  { type: 'step_start', event_id: 'mev_demo12', data: { step_id: 's4', label: 'Generating report', wave_id: 'w2', agent: 'muse' } },
+  { type: 'step_done', event_id: 'mev_demo13', data: { step_id: 's4', wave_id: 'w2', agent: 'muse' } },
+  { type: 'wave_done', event_id: 'mev_demo14', data: { wave_id: 'w2', label: 'Analysis' } },
 ]
 
 export async function GET(
@@ -60,8 +66,8 @@ export async function GET(
         // Emit mission_done
         const doneEvt: MissionEvent = {
           type: 'mission_done',
-          missionId: id,
-          summary: 'Missão concluída com sucesso',
+          event_id: 'mev_demo15',
+          data: { mission_id: id, summary: 'Missão concluída com sucesso' },
         }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(doneEvt)}\n\n`))
       }
