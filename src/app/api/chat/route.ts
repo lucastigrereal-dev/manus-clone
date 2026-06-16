@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 
+const LITELLM_BASE = "http://localhost:4001/v1";
+
 const systemPrompts: Record<string, string> = {
   aurora:
     "Você é Aurora, copiloto principal do OMNIS Calm Shell. Ajuda o usuário Lucas Tigre com criatividade, estratégia e execução. Responda em português do Brasil. Seja direta, útil e calma.",
@@ -12,18 +14,11 @@ const systemPrompts: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: "API key ausente. Configure ANTHROPIC_API_KEY no .env.local." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
-  const { message, agent = "aurora", history = [] } = await req.json();
-  const system = systemPrompts[agent.toLowerCase()] || systemPrompts.aurora;
+  const { message, agent = "aurora", model = "ollama-fast", history = [] } = await req.json();
+  const systemContent = systemPrompts[agent.toLowerCase()] || systemPrompts.aurora;
 
   const messages = [
+    { role: "system" as const, content: systemContent },
     ...history.slice(-10).map((h: { role: string; content: string }) => ({
       role: h.role as "user" | "assistant",
       content: h.content,
@@ -32,26 +27,16 @@ export async function POST(req: NextRequest) {
   ];
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch(`${LITELLM_BASE}/chat/completions`, {
       method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 4096,
-        stream: true,
-        system,
-        messages,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, messages, stream: true, max_tokens: 4096 }),
     });
 
     if (!response.ok) {
       const err = await response.text().catch(() => "Unknown error");
       return new Response(
-        JSON.stringify({ error: `Anthropic API error: ${err}` }),
+        JSON.stringify({ error: `LiteLLM error: ${err}` }),
         { status: 502, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -59,10 +44,7 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         const reader = response.body?.getReader();
-        if (!reader) {
-          controller.close();
-          return;
-        }
+        if (!reader) { controller.close(); return; }
 
         const decoder = new TextDecoder();
         let buffer = "";
@@ -79,41 +61,27 @@ export async function POST(req: NextRequest) {
             for (const line of lines) {
               if (!line.startsWith("data: ")) continue;
               const data = line.slice(6).trim();
-              if (!data) continue;
+              if (!data || data === "[DONE]") continue;
               try {
                 const parsed = JSON.parse(data);
-                if (
-                  parsed.type === "content_block_delta" &&
-                  parsed.delta?.type === "text_delta"
-                ) {
-                  const text = parsed.delta.text || "";
-                  if (text) controller.enqueue(new TextEncoder().encode(text));
-                }
-                // message_start, content_block_start, message_delta, message_stop: ignorados
+                const text = parsed.choices?.[0]?.delta?.content;
+                if (text) controller.enqueue(new TextEncoder().encode(text));
               } catch {
                 // ignora linhas malformadas
               }
             }
           }
 
-          // Flush do buffer residual
           if (buffer) {
             for (const line of buffer.split("\n")) {
               if (!line.startsWith("data: ")) continue;
               const data = line.slice(6).trim();
-              if (!data) continue;
+              if (!data || data === "[DONE]") continue;
               try {
                 const parsed = JSON.parse(data);
-                if (
-                  parsed.type === "content_block_delta" &&
-                  parsed.delta?.type === "text_delta"
-                ) {
-                  const text = parsed.delta.text || "";
-                  if (text) controller.enqueue(new TextEncoder().encode(text));
-                }
-              } catch {
-                // ignora
-              }
+                const text = parsed.choices?.[0]?.delta?.content;
+                if (text) controller.enqueue(new TextEncoder().encode(text));
+              } catch {}
             }
           }
         } finally {
@@ -132,7 +100,7 @@ export async function POST(req: NextRequest) {
     });
   } catch {
     return new Response(
-      JSON.stringify({ error: "Falha ao conectar com a API Anthropic. Verifique sua conexão." }),
+      JSON.stringify({ error: "LiteLLM :4001 inacessível. Verifique se está rodando." }),
       { status: 502, headers: { "Content-Type": "application/json" } }
     );
   }

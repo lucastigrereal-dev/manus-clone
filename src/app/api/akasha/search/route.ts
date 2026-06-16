@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+const AKASHA_BASE = 'http://localhost:8766'
+
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim()
   if (!q || q.length < 2) {
@@ -9,10 +11,10 @@ export async function GET(req: NextRequest) {
   const limit = Number(req.nextUrl.searchParams.get('limit') ?? '5')
 
   try {
-    const res = await fetch('http://localhost:8765/akasha/search', {
+    const res = await fetch(`${AKASHA_BASE}/akasha/search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: q, limit: Math.min(limit, 10), collection: null }),
+      body: JSON.stringify({ query: q, limit: Math.min(limit, 10) }),
       signal: AbortSignal.timeout(5000),
     })
 

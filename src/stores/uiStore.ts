@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { ulid } from 'ulidx'
 
 interface Toast {
   id: string
@@ -67,7 +68,7 @@ export const useUiStore = create<UiStore>((set) => ({
   toasts: [],
   addToast: (t) =>
     set((s) => ({
-      toasts: [...s.toasts, { ...t, id: Math.random().toString(36).slice(2) }],
+      toasts: [...s.toasts, { ...t, id: ulid() }],
     })),
   removeToast: (id) =>
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
@@ -76,7 +77,7 @@ export const useUiStore = create<UiStore>((set) => ({
   activeTabId: DEFAULT_TAB.id,
   addTab: () =>
     set((s) => {
-      const id = `tab-${Math.random().toString(36).slice(2, 9)}`
+      const id = ulid()
       const newTab: MissionTab = {
         id,
         title: 'Nova missão',
