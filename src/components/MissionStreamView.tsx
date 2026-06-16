@@ -6,6 +6,8 @@ import WaveProgressCard from "@/components/WaveProgressCard"
 import AgentLane from "@/components/AgentLane"
 import RollbackButton from "@/components/RollbackButton"
 import MissionReplayTimeline from "@/components/MissionReplayTimeline"
+import FailureRecoveryCard from "@/components/FailureRecoveryCard"
+import { useUiStore } from "@/stores/uiStore"
 
 interface Props {
   missionId: string
@@ -73,6 +75,7 @@ function riskBadgeStyle(riskLevel: string): React.CSSProperties {
 
 export default function MissionStreamView({ missionId, onClose }: Props) {
   const { events, status, error } = useMissionStream(missionId)
+  const addToast = useUiStore((s) => s.addToast)
   const [agentsExpanded, setAgentsExpanded] = useState(false)
   const [approvalLoading, setApprovalLoading] = useState(false)
   const [dismissedApprovals, setDismissedApprovals] = useState<Set<string>>(new Set())
@@ -190,6 +193,21 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
     }
     return null
   }, [events, dismissedApprovals])
+
+  // Derive failure class from error events
+  const failureClass = useMemo<string | null>(() => {
+    for (let i = events.length - 1; i >= 0; i--) {
+      const evt = events[i]
+      if (
+        evt.type === "step_error" ||
+        evt.type === "mission_error" ||
+        evt.type === "error"
+      ) {
+        return (evt.errorClass as string | undefined) ?? "UNKNOWN"
+      }
+    }
+    return null
+  }, [events])
 
   const hasMissionDone = events.some((e) => e.type === "mission_done")
   const hasAgents = agentLanes.length > 0
@@ -454,23 +472,37 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
 
             {/* Error state actions */}
             {status === "error" && !hasMissionDone && (
-              <div className="flex gap-2 justify-center flex-wrap">
-                <RollbackButton
-                  missionId={missionId}
-                  onRolledBack={() => {
-                    /* reset handled by parent if needed */
-                  }}
-                />
-                <button
-                  onClick={() => setShowReplay(true)}
-                  className="px-2 py-1 text-xs rounded-lg border transition-colors"
-                  style={{
-                    border: "1px solid var(--border-main)",
-                    color: "var(--text-secondary)",
-                  }}
-                >
-                  📹 Ver Replay
-                </button>
+              <div className="flex flex-col gap-2">
+                {failureClass && (
+                  <FailureRecoveryCard
+                    errorClass={failureClass}
+                    missionId={missionId}
+                    onAction={(action) => {
+                      addToast({
+                        kind: "info",
+                        message: `Ação de recuperação: ${action} (${failureClass})`,
+                      })
+                    }}
+                  />
+                )}
+                <div className="flex gap-2 justify-center flex-wrap">
+                  <RollbackButton
+                    missionId={missionId}
+                    onRolledBack={() => {
+                      /* reset handled by parent if needed */
+                    }}
+                  />
+                  <button
+                    onClick={() => setShowReplay(true)}
+                    className="px-2 py-1 text-xs rounded-lg border transition-colors"
+                    style={{
+                      border: "1px solid var(--border-main)",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    📹 Ver Replay
+                  </button>
+                </div>
               </div>
             )}
           </>

@@ -24,7 +24,9 @@ import { useContextPack } from "@/hooks/useContextPack";
 import ContextPackBadge from "@/components/ContextPackBadge";
 import MissionLauncher from "@/components/MissionLauncher";
 import MissionStreamView from "@/components/MissionStreamView";
+import ExecutionSidecar from "@/components/ExecutionSidecar";
 import { useUiStore } from "@/stores/uiStore";
+import { useMissionStream } from "@/hooks/useMissionStream";
 
 interface Message {
   id: string;
@@ -65,6 +67,9 @@ export default function Home() {
   const [lastLaunchedMissionId, setLastLaunchedMissionId] = useState<string | null>(null);
   const [streamingMissionId, setStreamingMissionId] = useState<string | null>(null);
   const addToast = useUiStore((s) => s.addToast);
+
+  // Sidecar: separate stream hook (MissionStreamView keeps its own connection)
+  const { events: missionEvents } = useMissionStream(streamingMissionId);
 
   // Wire global keyboard shortcuts
   useOmnisShortcuts();
@@ -315,6 +320,12 @@ export default function Home() {
             onClose={() => setStreamingMissionId(null)}
           />
         </div>
+      )}
+      {streamingMissionId !== null && (
+        <ExecutionSidecar
+          missionId={streamingMissionId}
+          events={missionEvents}
+        />
       )}
     </div>
   );
