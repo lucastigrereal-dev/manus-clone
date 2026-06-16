@@ -33,6 +33,7 @@ import CanvasView from "@/app/views/CanvasView";
 import FactoryOSView from "@/app/views/FactoryOSView";
 import KnowledgeGraphView from "@/app/views/KnowledgeGraphView";
 import BlockerBanner from "@/components/BlockerBanner";
+import MissionRunner from "@/components/MissionRunner";
 
 interface Message {
   id: string;
@@ -76,6 +77,7 @@ export default function Home() {
   const [lastLaunchedMissionId, setLastLaunchedMissionId] = useState<string | null>(null);
   const [streamingMissionId, setStreamingMissionId] = useState<string | null>(null);
   const [showArtifacts, setShowArtifacts] = useState(false);
+  const [missionEntry, setMissionEntry] = useState<{ text: string; key: number } | null>(null);
   const addToast = useUiStore((s) => s.addToast);
 
   // Sidecar: separate stream hook (MissionStreamView keeps its own connection)
@@ -175,6 +177,19 @@ export default function Home() {
     }
   }, [currentAgent, messages, contextPack, clearDraft]);
 
+  const launchMission = useCallback((text: string) => {
+    const userMsg: Message = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      role: "user",
+      content: text,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setInputValue("");
+    setMissionEntry({ text, key: Date.now() });
+    clearDraft();
+  }, [clearDraft]);
+
   const sendMessage = useCallback(() => {
     const text = inputValue.trim();
     if (!text || isLoading) return;
@@ -240,6 +255,18 @@ export default function Home() {
                     <div className="px-4 pb-2">
                       <div className="max-w-3xl mx-auto p-3 rounded-xl text-sm" style={{ backgroundColor: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca" }}>
                         ⚠️ {chatError}
+                      </div>
+                    </div>
+                  )}
+                  {/* Onda B: MissionRunner inline no chat */}
+                  {missionEntry && (
+                    <div className="px-4 pb-2">
+                      <div className="max-w-3xl mx-auto">
+                        <MissionRunner
+                          key={missionEntry.key}
+                          text={missionEntry.text}
+                          onDone={() => setMissionEntry(null)}
+                        />
                       </div>
                     </div>
                   )}
@@ -340,7 +367,7 @@ export default function Home() {
             onConfirm={() => {
               const text = preflightPending;
               setPreflightPending(null);
-              doSendMessage(text);
+              launchMission(text);
             }}
             onCancel={() => {
               setInputValue(preflightPending);
