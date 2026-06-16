@@ -13,6 +13,7 @@ interface ReplayFrame {
 interface Props {
   missionId: string
   onClose: () => void
+  frames?: ReplayFrame[]
 }
 
 function dotColor(type: string): string {
@@ -88,12 +89,18 @@ function SkeletonRow() {
   )
 }
 
-export default function MissionReplayTimeline({ missionId, onClose }: Props) {
-  const [frames, setFrames] = useState<ReplayFrame[]>([])
-  const [loading, setLoading] = useState(true)
+export default function MissionReplayTimeline({ missionId, onClose, frames: framesProp }: Props) {
+  const [internalFrames, setInternalFrames] = useState<ReplayFrame[]>([])
+  const [loading, setLoading] = useState(framesProp === undefined)
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
 
+  // If frames prop provided, skip internal fetch
   useEffect(() => {
+    if (framesProp !== undefined) {
+      setLoading(false)
+      return
+    }
+
     let cancelled = false
 
     async function fetchReplay() {
@@ -101,7 +108,7 @@ export default function MissionReplayTimeline({ missionId, onClose }: Props) {
         const res = await fetch(`/api/missions/${missionId}/replay`)
         const data: ReplayFrame[] = await res.json()
         if (!cancelled) {
-          setFrames(data)
+          setInternalFrames(data)
         }
       } catch {
         // leave frames empty
@@ -114,7 +121,9 @@ export default function MissionReplayTimeline({ missionId, onClose }: Props) {
     return () => {
       cancelled = true
     }
-  }, [missionId])
+  }, [missionId, framesProp])
+
+  const frames = framesProp ?? internalFrames
 
   return (
     <div className="flex flex-col gap-2 px-3 py-3">

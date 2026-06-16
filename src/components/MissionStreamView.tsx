@@ -1,11 +1,12 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useMissionStream } from "@/hooks/useMissionStream"
 import WaveProgressCard from "@/components/WaveProgressCard"
 import AgentLane from "@/components/AgentLane"
 import RollbackButton from "@/components/RollbackButton"
 import MissionReplayTimeline from "@/components/MissionReplayTimeline"
+import MissionFilmstrip from "@/components/MissionFilmstrip"
 import FailureRecoveryCard from "@/components/FailureRecoveryCard"
 import { useUiStore } from "@/stores/uiStore"
 
@@ -80,6 +81,27 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
   const [approvalLoading, setApprovalLoading] = useState(false)
   const [dismissedApprovals, setDismissedApprovals] = useState<Set<string>>(new Set())
   const [showReplay, setShowReplay] = useState(false)
+  const [replayFrames, setReplayFrames] = useState<Array<{ ts: string; label: string; type: string }>>([])
+  const [replayLoading, setReplayLoading] = useState(false)
+
+  // Fetch replay frames when replay panel is opened
+  useEffect(() => {
+    if (!showReplay || replayFrames.length > 0 || replayLoading) return
+    let cancelled = false
+    setReplayLoading(true)
+    fetch(`/api/missions/${missionId}/replay`)
+      .then((r) => r.json())
+      .then((data: Array<{ ts: string; label: string; type: string }>) => {
+        if (!cancelled) setReplayFrames(data)
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setReplayLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [showReplay, missionId, replayFrames.length, replayLoading])
 
   // Derive wave state from events
   const waves = useMemo<WaveState[]>(() => {
@@ -349,10 +371,18 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
 
         {/* ── Replay timeline replaces wave cards area when active ── */}
         {showReplay ? (
-          <MissionReplayTimeline
-            missionId={missionId}
-            onClose={() => setShowReplay(false)}
-          />
+          <>
+            {/* EVO-039 — Filmstrip scrub header above the detailed timeline */}
+            <MissionFilmstrip
+              frames={replayFrames}
+              title="Filmstrip"
+            />
+            <MissionReplayTimeline
+              missionId={missionId}
+              onClose={() => setShowReplay(false)}
+              frames={replayFrames}
+            />
+          </>
         ) : (
           <>
             {/* Wave cards */}

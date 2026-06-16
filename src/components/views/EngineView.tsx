@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import EconomicDashboard from "@/components/EconomicDashboard";
+import AutopilotAgenda from "@/components/AutopilotAgenda";
 
 const tabs = [
   { id: "agents", label: "Agentes & Modelos" },
@@ -92,6 +93,9 @@ export default function EngineView() {
       <div className="flex-1 overflow-y-auto p-6">
         {/* EVO-035 — Economic Dashboard */}
         <EconomicDashboard />
+
+        {/* EVO-037 — Autopilot Agenda */}
+        <AutopilotAgenda />
 
         {/* Agentes & Modelos */}
         {activeTab === "agents" && (
