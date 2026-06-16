@@ -27,6 +27,7 @@ import MissionStreamView from "@/components/MissionStreamView";
 import ExecutionSidecar from "@/components/ExecutionSidecar";
 import { useUiStore } from "@/stores/uiStore";
 import { useMissionStream } from "@/hooks/useMissionStream";
+import MissionTabs from "@/components/MissionTabs";
 
 interface Message {
   id: string;
@@ -195,6 +196,9 @@ export default function Home() {
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
           onSparkleClick={() => setProfileOpen(true)}
         />
+
+        {/* EVO-033 — Parallel mission tabs */}
+        <MissionTabs />
 
         <div className="flex-1 overflow-y-auto">
           {activeView === "home" && (
