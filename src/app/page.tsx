@@ -19,6 +19,7 @@ import InlineToast from "@/components/InlineToast";
 import PromptChips from "@/components/PromptChips";
 import { useOmnisShortcuts } from "@/hooks/useOmnisShortcuts";
 import { useDraftAutosave } from "@/hooks/useDraftAutosave";
+import PreflightPanel from "@/components/PreflightPanel";
 
 interface Message {
   id: string;
@@ -54,6 +55,7 @@ export default function Home() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [currentAgent, setCurrentAgent] = useState("aurora");
+  const [preflightPending, setPreflightPending] = useState<string | null>(null);
 
   // Wire global keyboard shortcuts
   useOmnisShortcuts();
@@ -83,10 +85,7 @@ export default function Home() {
     if (agent) setCurrentAgent(agent);
   }, []);
 
-  const sendMessage = useCallback(async () => {
-    const text = inputValue.trim();
-    if (!text || isLoading) return;
-
+  const doSendMessage = useCallback(async (text: string) => {
     const userMsg: Message = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       role: "user",
@@ -150,7 +149,15 @@ export default function Home() {
       setIsLoading(false);
       setStreamingContent("");
     }
-  }, [inputValue, isLoading, currentAgent, messages, clearDraft]);
+  }, [currentAgent, messages, clearDraft]);
+
+  const sendMessage = useCallback(() => {
+    const text = inputValue.trim();
+    if (!text || isLoading) return;
+
+    // EVO-012: intercept to show preflight cost estimate before sending
+    setPreflightPending(text);
+  }, [inputValue, isLoading]);
 
   const hasMessages = messages.length > 0 || isLoading || streamingContent.length > 0;
 
@@ -239,6 +246,23 @@ export default function Home() {
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <CommandPalette />
       <InlineToast />
+
+      {preflightPending !== null && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <PreflightPanel
+            message={preflightPending}
+            onConfirm={() => {
+              const text = preflightPending;
+              setPreflightPending(null);
+              doSendMessage(text);
+            }}
+            onCancel={() => {
+              setInputValue(preflightPending);
+              setPreflightPending(null);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
