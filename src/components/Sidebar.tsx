@@ -47,6 +47,34 @@ export default function Sidebar({ isOpen, onClose, activeView, onNavChange, onPr
       .catch(() => undefined)
   }, [])
 
+  // Status real do runtime — NÃO hardcode. Reflete /api/health (que prova :8765).
+  const [runtime, setRuntime] = useState<{ online: boolean; okCount: number; total: number }>({
+    online: false,
+    okCount: 0,
+    total: 0,
+  })
+  useEffect(() => {
+    let alive = true
+    const poll = () =>
+      fetch('/api/health')
+        .then((r) => r.json())
+        .then((d) => {
+          if (!alive) return
+          const services: Array<{ status?: string }> = Array.isArray(d?.services) ? d.services : []
+          const okCount = services.filter((s) => s.status === 'ok').length
+          // online só se ALGUM serviço respondeu de verdade (não offline)
+          const online = services.some((s) => s.status && s.status !== 'offline')
+          setRuntime({ online, okCount, total: services.length })
+        })
+        .catch(() => alive && setRuntime({ online: false, okCount: 0, total: 0 }))
+    poll()
+    const id = setInterval(poll, 10000)
+    return () => {
+      alive = false
+      clearInterval(id)
+    }
+  }, [])
+
   return (
     <aside
       className={`fixed md:relative z-50 h-full w-[260px] flex flex-col transition-transform duration-300 ${
@@ -136,10 +164,14 @@ export default function Sidebar({ isOpen, onClose, activeView, onNavChange, onPr
           style={{ backgroundColor: "var(--background-gray-main)" }}
         >
           <div className="flex items-center gap-2 mb-1">
-            <span>⚡</span>
+            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${runtime.online ? "bg-emerald-400" : "bg-red-400"}`} />
             <span className="font-medium" style={{ color: "var(--text-primary)" }}>Status OMNIS</span>
           </div>
-          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Runtime conectado · 5 agentes ativos</p>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+            {runtime.online
+              ? `Runtime conectado · ${runtime.okCount}/${runtime.total} serviços ok`
+              : "Runtime offline · fallback local"}
+          </p>
         </div>
 
         <button
