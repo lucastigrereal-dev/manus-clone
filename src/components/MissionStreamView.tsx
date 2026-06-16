@@ -4,6 +4,8 @@ import { useMemo, useState } from "react"
 import { useMissionStream } from "@/hooks/useMissionStream"
 import WaveProgressCard from "@/components/WaveProgressCard"
 import AgentLane from "@/components/AgentLane"
+import RollbackButton from "@/components/RollbackButton"
+import MissionReplayTimeline from "@/components/MissionReplayTimeline"
 
 interface Props {
   missionId: string
@@ -74,6 +76,7 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
   const [agentsExpanded, setAgentsExpanded] = useState(false)
   const [approvalLoading, setApprovalLoading] = useState(false)
   const [dismissedApprovals, setDismissedApprovals] = useState<Set<string>>(new Set())
+  const [showReplay, setShowReplay] = useState(false)
 
   // Derive wave state from events
   const waves = useMemo<WaveState[]>(() => {
@@ -326,97 +329,151 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
           </div>
         )}
 
-        {/* Wave cards */}
-        {waves.map((wave) => (
-          <WaveProgressCard
-            key={wave.id}
-            waveId={wave.id}
-            label={wave.label}
-            steps={wave.steps}
-            status={wave.status}
+        {/* ── Replay timeline replaces wave cards area when active ── */}
+        {showReplay ? (
+          <MissionReplayTimeline
+            missionId={missionId}
+            onClose={() => setShowReplay(false)}
           />
-        ))}
+        ) : (
+          <>
+            {/* Wave cards */}
+            {waves.map((wave) => (
+              <WaveProgressCard
+                key={wave.id}
+                waveId={wave.id}
+                label={wave.label}
+                steps={wave.steps}
+                status={wave.status}
+              />
+            ))}
 
-        {/* ── Agent Lanes Section (EVO-024) ── */}
-        {hasAgents && (
-          <div
-            className="rounded-xl flex flex-col"
-            style={{
-              border: "1px solid var(--border-main)",
-              backgroundColor: "var(--background-nav)",
-              overflow: "hidden",
-            }}
-          >
-            {/* Collapsible header */}
-            <button
-              onClick={() => setAgentsExpanded((v) => !v)}
-              className="flex items-center justify-between px-3 py-2 transition-colors text-left w-full"
-              style={{
-                color: "var(--text-secondary)",
-                borderBottom: agentsExpanded ? "1px solid var(--border-main)" : "none",
-              }}
-            >
-              <span className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>
-                Agentes
-                <span
-                  className="ml-1.5 text-xs rounded-full px-1.5 py-0.5"
-                  style={{
-                    backgroundColor: "rgba(107,114,128,0.15)",
-                    color: "var(--text-tertiary)",
-                  }}
-                >
-                  {agentLanes.length}
-                </span>
-              </span>
-              <svg
-                width={14}
-                height={14}
-                viewBox="0 0 14 14"
-                fill="none"
+            {/* ── Agent Lanes Section (EVO-024) ── */}
+            {hasAgents && (
+              <div
+                className="rounded-xl flex flex-col"
                 style={{
-                  transform: agentsExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 150ms",
-                  color: "var(--text-tertiary)",
+                  border: "1px solid var(--border-main)",
+                  backgroundColor: "var(--background-nav)",
+                  overflow: "hidden",
                 }}
               >
-                <path
-                  d="M3 5l4 4 4-4"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+                {/* Collapsible header */}
+                <button
+                  onClick={() => setAgentsExpanded((v) => !v)}
+                  className="flex items-center justify-between px-3 py-2 transition-colors text-left w-full"
+                  style={{
+                    color: "var(--text-secondary)",
+                    borderBottom: agentsExpanded ? "1px solid var(--border-main)" : "none",
+                  }}
+                >
+                  <span className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>
+                    Agentes
+                    <span
+                      className="ml-1.5 text-xs rounded-full px-1.5 py-0.5"
+                      style={{
+                        backgroundColor: "rgba(107,114,128,0.15)",
+                        color: "var(--text-tertiary)",
+                      }}
+                    >
+                      {agentLanes.length}
+                    </span>
+                  </span>
+                  <svg
+                    width={14}
+                    height={14}
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    style={{
+                      transform: agentsExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 150ms",
+                      color: "var(--text-tertiary)",
+                    }}
+                  >
+                    <path
+                      d="M3 5l4 4 4-4"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
 
-            {/* Agent lanes */}
-            {agentsExpanded && (
-              <div className="flex flex-col gap-1.5 p-2">
-                {agentLanes.map((lane) => (
-                  <AgentLane
-                    key={lane.name}
-                    agent={lane.name}
-                    steps={lane.steps}
-                    isActive={lane.isActive}
-                  />
-                ))}
+                {/* Agent lanes */}
+                {agentsExpanded && (
+                  <div className="flex flex-col gap-1.5 p-2">
+                    {agentLanes.map((lane) => (
+                      <AgentLane
+                        key={lane.name}
+                        agent={lane.name}
+                        steps={lane.steps}
+                        isActive={lane.isActive}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
-        {/* Mission done banner */}
-        {hasMissionDone && (
-          <div
-            className="px-3 py-2 rounded-xl text-sm text-center font-medium"
-            style={{
-              backgroundColor: "rgba(16,185,129,0.10)",
-              color: "rgb(16,185,129)",
-              border: "1px solid rgba(16,185,129,0.25)",
-            }}
-          >
-            ✓ Missão concluída com sucesso
-          </div>
+            {/* Mission done banner + EVO-026/EVO-027 actions */}
+            {hasMissionDone && (
+              <div
+                className="flex flex-col gap-2 px-3 py-2 rounded-xl"
+                style={{
+                  backgroundColor: "rgba(16,185,129,0.10)",
+                  border: "1px solid rgba(16,185,129,0.25)",
+                }}
+              >
+                <span
+                  className="text-sm text-center font-medium"
+                  style={{ color: "rgb(16,185,129)" }}
+                >
+                  ✓ Missão concluída com sucesso
+                </span>
+                <div className="flex gap-2 justify-center flex-wrap">
+                  <RollbackButton
+                    missionId={missionId}
+                    onRolledBack={() => {
+                      /* reset handled by parent if needed */
+                    }}
+                  />
+                  <button
+                    onClick={() => setShowReplay(true)}
+                    className="px-2 py-1 text-xs rounded-lg border transition-colors"
+                    style={{
+                      border: "1px solid var(--border-main)",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    📹 Ver Replay
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Error state actions */}
+            {status === "error" && !hasMissionDone && (
+              <div className="flex gap-2 justify-center flex-wrap">
+                <RollbackButton
+                  missionId={missionId}
+                  onRolledBack={() => {
+                    /* reset handled by parent if needed */
+                  }}
+                />
+                <button
+                  onClick={() => setShowReplay(true)}
+                  className="px-2 py-1 text-xs rounded-lg border transition-colors"
+                  style={{
+                    border: "1px solid var(--border-main)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  📹 Ver Replay
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
