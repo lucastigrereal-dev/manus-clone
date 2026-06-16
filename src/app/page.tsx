@@ -20,6 +20,8 @@ import PromptChips from "@/components/PromptChips";
 import { useOmnisShortcuts } from "@/hooks/useOmnisShortcuts";
 import { useDraftAutosave } from "@/hooks/useDraftAutosave";
 import PreflightPanel from "@/components/PreflightPanel";
+import { useContextPack } from "@/hooks/useContextPack";
+import ContextPackBadge from "@/components/ContextPackBadge";
 
 interface Message {
   id: string;
@@ -69,6 +71,8 @@ export default function Home() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const contextPack = useContextPack({ messages, conversationId: "global" });
   const [streamingContent, setStreamingContent] = useState("");
   const [chatError, setChatError] = useState<string | null>(null);
 
@@ -106,11 +110,9 @@ export default function Home() {
         body: JSON.stringify({
           message: text,
           agent: currentAgent,
-          history: messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-            agent: m.agent,
-          })),
+          history: contextPack.recentTurns.length > 0
+            ? contextPack.recentTurns
+            : messages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
 
@@ -149,7 +151,7 @@ export default function Home() {
       setIsLoading(false);
       setStreamingContent("");
     }
-  }, [currentAgent, messages, clearDraft]);
+  }, [currentAgent, messages, contextPack, clearDraft]);
 
   const sendMessage = useCallback(() => {
     const text = inputValue.trim();
@@ -201,6 +203,9 @@ export default function Home() {
                     </div>
                   )}
                   <div className="px-4 pb-4">
+                    <div className="max-w-3xl mx-auto mb-2 flex">
+                      <ContextPackBadge pack={contextPack} />
+                    </div>
                     <Composer
                       value={inputValue}
                       onChange={setInputValue}
