@@ -30,6 +30,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { useMissionStream } from "@/hooks/useMissionStream";
 import MissionTabs from "@/components/MissionTabs";
 import CanvasView from "@/app/views/CanvasView";
+import FactoryOSView from "@/app/views/FactoryOSView";
 import BlockerBanner from "@/components/BlockerBanner";
 
 interface Message {
@@ -48,6 +49,7 @@ const navItems = [
   { id: "library", label: "Biblioteca", view: "library" },
   { id: "engine", label: "Motor", view: "engine" },
   { id: "canvas", label: "Canvas", view: "canvas" },
+  { id: "factory-os", label: "Factory OS", view: "factory-os" },
 ];
 
 const modeToAgent: Record<string, string> = {
@@ -293,6 +295,7 @@ export default function Home() {
           {activeView === "agents" && <AgentsView />}
           {activeView === "engine" && <EngineView />}
           {activeView === "canvas" && <CanvasView />}
+          {activeView === "factory-os" && <FactoryOSView />}
         </div>
       </main>
 

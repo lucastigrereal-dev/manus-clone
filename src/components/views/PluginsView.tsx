@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import PluginMarketplace from "@/components/PluginMarketplace";
 
 const connectors = [
   { name: "Gmail", desc: "Redija respostas, pesquise e resuma e-mails", status: "connect" },
@@ -34,6 +35,7 @@ export default function PluginsView() {
           { id: "connectors", label: "Conectores" },
           { id: "skills", label: "Habilidades" },
           { id: "data", label: "Fontes de dados" },
+          { id: "marketplace", label: "Marketplace" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -122,6 +124,8 @@ export default function PluginsView() {
           ))}
         </div>
       )}
+
+      {activeTab === "marketplace" && <PluginMarketplace />}
     </div>
   );
 }
