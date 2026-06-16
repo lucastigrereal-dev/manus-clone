@@ -22,6 +22,8 @@ import { useDraftAutosave } from "@/hooks/useDraftAutosave";
 import PreflightPanel from "@/components/PreflightPanel";
 import { useContextPack } from "@/hooks/useContextPack";
 import ContextPackBadge from "@/components/ContextPackBadge";
+import MissionLauncher from "@/components/MissionLauncher";
+import { useUiStore } from "@/stores/uiStore";
 
 interface Message {
   id: string;
@@ -58,6 +60,9 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [currentAgent, setCurrentAgent] = useState("aurora");
   const [preflightPending, setPreflightPending] = useState<string | null>(null);
+  const [missionLauncherOpen, setMissionLauncherOpen] = useState(false);
+  const [lastLaunchedMissionId, setLastLaunchedMissionId] = useState<string | null>(null);
+  const addToast = useUiStore((s) => s.addToast);
 
   // Wire global keyboard shortcuts
   useOmnisShortcuts();
@@ -222,6 +227,17 @@ export default function Home() {
                     <h1 className="text-2xl md:text-3xl font-medium mb-8 text-center" style={{ color: "var(--text-primary)" }}>
                       O que posso fazer por você?
                     </h1>
+                    <button
+                      onClick={() => setMissionLauncherOpen(true)}
+                      className="mb-4 flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors"
+                      style={{
+                        backgroundColor: "var(--background-nav)",
+                        border: "1px solid var(--border-main)",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      🚀 Nova Missão
+                    </button>
                     <Composer
                       value={inputValue}
                       onChange={setInputValue}
@@ -264,6 +280,24 @@ export default function Home() {
             onCancel={() => {
               setInputValue(preflightPending);
               setPreflightPending(null);
+            }}
+          />
+        </div>
+      )}
+
+      {missionLauncherOpen && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setMissionLauncherOpen(false);
+          }}
+        >
+          <MissionLauncher
+            onLaunched={(missionId) => {
+              setLastLaunchedMissionId(missionId);
+              setMissionLauncherOpen(false);
+              addToast({ kind: "success", message: `Missão lançada: ${missionId}` });
             }}
           />
         </div>
