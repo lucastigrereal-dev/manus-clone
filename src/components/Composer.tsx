@@ -111,39 +111,6 @@ export default function Composer({ value, onChange, selectedMode, onModeChange, 
             {/* Model Selector */}
             <ModelSelector value={selectedModel} onChange={setSelectedModel} />
 
-            {/* App Factory */}
-            <button
-              className="px-2 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors hover:bg-neutral-100"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-main)' }}
-              title="App Factory v3.1"
-            >
-              🏭 App Factory
-            </button>
-
-            {/* Dev Build */}
-            <button
-              className="px-2 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors hover:bg-neutral-100 relative"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-main)' }}
-              title="Dev / Automação"
-            >
-              🖥️ Dev Build
-              <span
-                className="absolute -top-1.5 -right-1.5 text-[9px] px-1 py-0.5 rounded-full text-white font-medium"
-                style={{ backgroundColor: 'var(--Button-black)' }}
-              >
-                Novo
-              </span>
-            </button>
-
-            {/* Instagram */}
-            <button
-              className="px-2 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors hover:bg-neutral-100"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-main)' }}
-              title="6 contas Creator"
-            >
-              📸 Instagram
-            </button>
-
             {/* Meeting */}
             <button
               className="p-2 rounded-lg transition-colors hover:bg-neutral-100"
