@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import EconomicDashboard from "@/components/EconomicDashboard";
 
 const tabs = [
   { id: "agents", label: "Agentes & Modelos" },
@@ -89,6 +90,9 @@ export default function EngineView() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
+        {/* EVO-035 — Economic Dashboard */}
+        <EconomicDashboard />
+
         {/* Agentes & Modelos */}
         {activeTab === "agents" && (
           <div className="space-y-3">

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useUiStore } from "@/stores/uiStore";
 
 interface QuickActionsProps {
   onSelect: (mode: string) => void;
@@ -23,28 +24,55 @@ const moreActions = [
 
 export default function QuickActions({ onSelect, selectedMode }: QuickActionsProps) {
   const [showMore, setShowMore] = useState(false);
+  const quickActionUsage = useUiStore((s) => s.quickActionUsage);
+  const trackQuickAction = useUiStore((s) => s.trackQuickAction);
+
+  // Sort primary actions by usage count descending, preserving original order for ties
+  const sortedActions = [...actions].sort(
+    (a, b) => (quickActionUsage[b.id] ?? 0) - (quickActionUsage[a.id] ?? 0)
+  );
+
+  const handleSelect = (id: string) => {
+    trackQuickAction(id);
+    onSelect(id);
+  };
 
   return (
     <div className="mt-4 flex flex-wrap justify-center items-center gap-2">
-      {actions.map((action) => (
-        <button
-          key={action.id}
-          onClick={() => onSelect(action.id)}
-          className={`h-10 flex items-center gap-2 px-[14px] py-[7px] rounded-full border transition-all flex-shrink-0 ${
-            selectedMode === action.id
-              ? "bg-neutral-100 border-neutral-300"
-              : "hover:bg-neutral-50"
-          }`}
-          style={{
-            borderColor: "var(--border-main)",
-            color: "var(--text-secondary)",
-            fontSize: "14px",
-          }}
-        >
-          <span>{action.icon}</span>
-          <span className="font-medium">{action.label}</span>
-        </button>
-      ))}
+      {sortedActions.map((action) => {
+        const count = quickActionUsage[action.id] ?? 0;
+        return (
+          <div key={action.id} className="relative">
+            <button
+              onClick={() => handleSelect(action.id)}
+              className={`h-10 flex items-center gap-2 px-[14px] py-[7px] rounded-full border transition-all flex-shrink-0 ${
+                selectedMode === action.id
+                  ? "bg-neutral-100 border-neutral-300"
+                  : "hover:bg-neutral-50"
+              }`}
+              style={{
+                borderColor: "var(--border-main)",
+                color: "var(--text-secondary)",
+                fontSize: "14px",
+              }}
+            >
+              <span>{action.icon}</span>
+              <span className="font-medium">{action.label}</span>
+            </button>
+            {count > 0 && (
+              <span
+                className="absolute -top-1 -right-1 text-[9px] w-4 h-4 rounded-full flex items-center justify-center pointer-events-none"
+                style={{
+                  backgroundColor: "rgba(0,0,0,0.1)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                {count > 99 ? "99" : count}
+              </span>
+            )}
+          </div>
+        );
+      })}
 
       {/* More Button */}
       <div className="relative">
@@ -80,7 +108,7 @@ export default function QuickActions({ onSelect, selectedMode }: QuickActionsPro
                 <button
                   key={action.id}
                   onClick={() => {
-                    onSelect(action.id);
+                    handleSelect(action.id);
                     setShowMore(false);
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-neutral-50 transition-colors"
@@ -88,6 +116,17 @@ export default function QuickActions({ onSelect, selectedMode }: QuickActionsPro
                 >
                   <span className="text-lg">{action.icon}</span>
                   <span>{action.label}</span>
+                  {(quickActionUsage[action.id] ?? 0) > 0 && (
+                    <span
+                      className="ml-auto text-[9px] w-4 h-4 rounded-full flex items-center justify-center"
+                      style={{
+                        backgroundColor: "rgba(0,0,0,0.08)",
+                        color: "var(--text-tertiary)",
+                      }}
+                    >
+                      {quickActionUsage[action.id]}
+                    </span>
+                  )}
                 </button>
               ))}
               <div className="h-px mx-4 my-1" style={{ backgroundColor: "var(--border-main)" }} />

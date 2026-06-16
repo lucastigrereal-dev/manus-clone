@@ -40,6 +40,21 @@ interface UiStore {
   removeTab: (id: string) => void
   setActiveTab: (id: string) => void
   updateTab: (id: string, patch: Partial<MissionTab>) => void
+  // EVO-036 — adaptive quick actions
+  quickActionUsage: Record<string, number>
+  trackQuickAction: (actionId: string) => void
+}
+
+const QUICK_ACTION_USAGE_KEY = 'omnis:quick-action-usage'
+
+function loadQuickActionUsage(): Record<string, number> {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = window.localStorage.getItem(QUICK_ACTION_USAGE_KEY)
+    return raw ? (JSON.parse(raw) as Record<string, number>) : {}
+  } catch {
+    return {}
+  }
 }
 
 export const useUiStore = create<UiStore>((set) => ({
@@ -87,4 +102,19 @@ export const useUiStore = create<UiStore>((set) => ({
     set((s) => ({
       missionTabs: s.missionTabs.map((t) => (t.id === id ? { ...t, ...patch } : t)),
     })),
+  // EVO-036 — adaptive quick actions
+  quickActionUsage: loadQuickActionUsage(),
+  trackQuickAction: (actionId) =>
+    set((s) => {
+      const updated = {
+        ...s.quickActionUsage,
+        [actionId]: (s.quickActionUsage[actionId] ?? 0) + 1,
+      }
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(QUICK_ACTION_USAGE_KEY, JSON.stringify(updated))
+        } catch {}
+      }
+      return { quickActionUsage: updated }
+    }),
 }))

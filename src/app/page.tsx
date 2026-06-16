@@ -29,6 +29,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { useMissionStream } from "@/hooks/useMissionStream";
 import MissionTabs from "@/components/MissionTabs";
 import CanvasView from "@/app/views/CanvasView";
+import BlockerBanner from "@/components/BlockerBanner";
 
 interface Message {
   id: string;
@@ -281,6 +282,7 @@ export default function Home() {
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <CommandPalette />
       <InlineToast />
+      <BlockerBanner messages={messages} inputValue={inputValue} />
 
       {preflightPending !== null && (
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
