@@ -23,6 +23,7 @@ import PreflightPanel from "@/components/PreflightPanel";
 import { useContextPack } from "@/hooks/useContextPack";
 import ContextPackBadge from "@/components/ContextPackBadge";
 import MissionLauncher from "@/components/MissionLauncher";
+import MissionStreamView from "@/components/MissionStreamView";
 import { useUiStore } from "@/stores/uiStore";
 
 interface Message {
@@ -62,6 +63,7 @@ export default function Home() {
   const [preflightPending, setPreflightPending] = useState<string | null>(null);
   const [missionLauncherOpen, setMissionLauncherOpen] = useState(false);
   const [lastLaunchedMissionId, setLastLaunchedMissionId] = useState<string | null>(null);
+  const [streamingMissionId, setStreamingMissionId] = useState<string | null>(null);
   const addToast = useUiStore((s) => s.addToast);
 
   // Wire global keyboard shortcuts
@@ -169,7 +171,7 @@ export default function Home() {
   const hasMessages = messages.length > 0 || isLoading || streamingContent.length > 0;
 
   return (
-    <div className="h-screen flex overflow-hidden" style={{ backgroundColor: "var(--background-gray-main)" }}>
+    <div className="h-screen flex overflow-hidden relative" style={{ backgroundColor: "var(--background-gray-main)" }}>
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -297,8 +299,20 @@ export default function Home() {
             onLaunched={(missionId) => {
               setLastLaunchedMissionId(missionId);
               setMissionLauncherOpen(false);
+              setStreamingMissionId(missionId);
               addToast({ kind: "success", message: `Missão lançada: ${missionId}` });
             }}
+          />
+        </div>
+      )}
+      {streamingMissionId !== null && (
+        <div
+          className="fixed right-0 top-0 h-full z-40 shadow-xl flex flex-col overflow-hidden"
+          style={{ width: "20rem" }}
+        >
+          <MissionStreamView
+            missionId={streamingMissionId}
+            onClose={() => setStreamingMissionId(null)}
           />
         </div>
       )}
