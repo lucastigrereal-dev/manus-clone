@@ -24,7 +24,8 @@ import { useContextPack } from "@/hooks/useContextPack";
 import ContextPackBadge from "@/components/ContextPackBadge";
 import MissionLauncher from "@/components/MissionLauncher";
 import MissionStreamView from "@/components/MissionStreamView";
-import ExecutionSidecar from "@/components/ExecutionSidecar";
+import ExecutionSidecar from "@/components/ExecutionSidecar"
+import ArtifactPane from "@/components/ArtifactPane";
 import { useUiStore } from "@/stores/uiStore";
 import { useMissionStream } from "@/hooks/useMissionStream";
 import MissionTabs from "@/components/MissionTabs";
@@ -70,6 +71,7 @@ export default function Home() {
   const [missionLauncherOpen, setMissionLauncherOpen] = useState(false);
   const [lastLaunchedMissionId, setLastLaunchedMissionId] = useState<string | null>(null);
   const [streamingMissionId, setStreamingMissionId] = useState<string | null>(null);
+  const [showArtifacts, setShowArtifacts] = useState(false);
   const addToast = useUiStore((s) => s.addToast);
 
   // Sidecar: separate stream hook (MissionStreamView keeps its own connection)
@@ -208,6 +210,22 @@ export default function Home() {
             <>
               {hasMessages ? (
                 <div className="flex flex-col h-full">
+                  {/* Artifacts toggle pill — visible when a mission is streaming */}
+                  {streamingMissionId !== null && (
+                    <div className="flex justify-end px-4 pt-2 shrink-0">
+                      <button
+                        onClick={() => setShowArtifacts(true)}
+                        className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors"
+                        style={{
+                          border: "1px solid var(--border-main)",
+                          color: "var(--text-secondary)",
+                          backgroundColor: "var(--background-menu-white)",
+                        }}
+                      >
+                        📦 Artifacts
+                      </button>
+                    </div>
+                  )}
                   <ChatArea
                     messages={messages}
                     isLoading={isLoading}
@@ -277,6 +295,31 @@ export default function Home() {
           {activeView === "canvas" && <CanvasView />}
         </div>
       </main>
+
+      {/* EVO-038: Artifacts full overlay */}
+      {showArtifacts && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto p-4"
+          style={{ backgroundColor: "var(--background-menu-white)" }}
+        >
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-end mb-3">
+              <button
+                onClick={() => setShowArtifacts(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{
+                  border: "1px solid var(--border-main)",
+                  color: "var(--text-secondary)",
+                  backgroundColor: "transparent",
+                }}
+              >
+                Fechar
+              </button>
+            </div>
+            <ArtifactPane />
+          </div>
+        </div>
+      )}
 
       <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import type { MissionEvent } from "@/hooks/useMissionStream"
+import ArtifactPane, { MOCK_ARTIFACTS } from "@/components/ArtifactPane"
 
 interface Props {
   missionId: string
@@ -256,11 +257,8 @@ export default function ExecutionSidecar({ missionId, events }: Props) {
 
           {/* Artifacts tab */}
           {activeTab === "artifacts" && (
-            <div className="h-full flex flex-col items-center justify-center gap-1">
-              <span className="text-2xl">📦</span>
-              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                Nenhum artifact ainda
-              </p>
+            <div className="h-full overflow-hidden">
+              <ArtifactPane artifacts={MOCK_ARTIFACTS} />
             </div>
           )}
         </div>
