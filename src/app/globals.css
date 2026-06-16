@@ -134,3 +134,11 @@
     transform: scale(1.4);
   }
 }
+
+/* cmdk command palette item highlight */
+[cmdk-item][data-selected='true'] {
+  background-color: var(--background-gray-main);
+}
+[cmdk-item]:hover {
+  background-color: var(--background-gray-main);
+}
