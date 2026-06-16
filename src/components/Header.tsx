@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 import HealthHeader from "@/components/HealthHeader";
+import OracleKPIs from "@/components/OracleKPIs";
 import { useUiStore } from "@/stores/uiStore";
 
 interface HeaderProps {
@@ -40,6 +41,8 @@ export default function Header({ onMenuToggle, onSparkleClick }: HeaderProps) {
           </svg>
         </button>
       </div>
+
+      <OracleKPIs />
 
       <div className="flex items-center gap-2">
         <HealthHeader />
