@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-const LITELLM_BASE = "http://localhost:4001/v1";
+const AURORA_BASE = "http://localhost:8766";
 
 const systemPrompts: Record<string, string> = {
   aurora:
@@ -17,90 +17,38 @@ export async function POST(req: NextRequest) {
   const { message, agent = "aurora", model = "ollama-fast", history = [] } = await req.json();
   const systemContent = systemPrompts[agent.toLowerCase()] || systemPrompts.aurora;
 
-  const messages = [
-    { role: "system" as const, content: systemContent },
-    ...history.slice(-10).map((h: { role: string; content: string }) => ({
-      role: h.role as "user" | "assistant",
-      content: h.content,
-    })),
-    { role: "user" as const, content: message },
-  ];
-
+  // Endpoint real do Core: POST /aurora/chat → {"response","status","model"}
+  // Aurora é não-streaming — wrappamos a resposta como texto plano
+  // para manter o contrato com o frontend sem alterar nenhum componente.
   try {
-    const response = await fetch(`${LITELLM_BASE}/chat/completions`, {
+    const response = await fetch(`${AURORA_BASE}/aurora/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages, stream: true, max_tokens: 4096 }),
+      body: JSON.stringify({
+        message,
+        agent,
+        model,
+        system_prompt: systemContent,
+        history: history.slice(-10),
+      }),
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!response.ok) {
-      const err = await response.text().catch(() => "Unknown error");
-      return new Response(
-        JSON.stringify({ error: `LiteLLM error: ${err}` }),
-        { status: 502, headers: { "Content-Type": "application/json" } }
-      );
+      throw new Error(`aurora ${response.status}`);
     }
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        const reader = response.body?.getReader();
-        if (!reader) { controller.close(); return; }
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
-
-            for (const line of lines) {
-              if (!line.startsWith("data: ")) continue;
-              const data = line.slice(6).trim();
-              if (!data || data === "[DONE]") continue;
-              try {
-                const parsed = JSON.parse(data);
-                const text = parsed.choices?.[0]?.delta?.content;
-                if (text) controller.enqueue(new TextEncoder().encode(text));
-              } catch {
-                // ignora linhas malformadas
-              }
-            }
-          }
-
-          if (buffer) {
-            for (const line of buffer.split("\n")) {
-              if (!line.startsWith("data: ")) continue;
-              const data = line.slice(6).trim();
-              if (!data || data === "[DONE]") continue;
-              try {
-                const parsed = JSON.parse(data);
-                const text = parsed.choices?.[0]?.delta?.content;
-                if (text) controller.enqueue(new TextEncoder().encode(text));
-              } catch {}
-            }
-          }
-        } finally {
-          reader.releaseLock();
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(stream, {
+    const data = await response.json();
+    const text: string = data.response ?? "(Aurora sem resposta)";
+    return new Response(text, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-cache",
-        Connection: "keep-alive",
       },
     });
   } catch {
     return new Response(
-      JSON.stringify({ error: "LiteLLM :4001 inacessível. Verifique se está rodando." }),
+      JSON.stringify({ error: "Aurora :8766 inacessível. Core offline?" }),
       { status: 502, headers: { "Content-Type": "application/json" } }
     );
   }
