@@ -1,8 +1,9 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useMissionStream } from "@/hooks/useMissionStream"
 import WaveProgressCard from "@/components/WaveProgressCard"
+import AgentLane from "@/components/AgentLane"
 
 interface Props {
   missionId: string
@@ -23,6 +24,24 @@ interface WaveState {
   status: "pending" | "running" | "done"
 }
 
+interface AgentStepState {
+  id: string
+  label: string
+  status: "running" | "done" | "pending" | "error"
+}
+
+interface AgentState {
+  name: string
+  steps: AgentStepState[]
+  isActive: boolean
+}
+
+interface PendingApproval {
+  approvalId: string
+  summary: string
+  riskLevel: string
+}
+
 function statusBanner(
   status: "idle" | "connecting" | "streaming" | "done" | "error"
 ): { text: string; color: string; bg: string } {
@@ -40,8 +59,21 @@ function statusBanner(
   }
 }
 
+function riskBadgeStyle(riskLevel: string): React.CSSProperties {
+  if (riskLevel === "R3" || riskLevel === "R4") {
+    return { backgroundColor: "rgba(239,68,68,0.15)", color: "rgb(239,68,68)", border: "1px solid rgba(239,68,68,0.30)" }
+  }
+  if (riskLevel === "R2") {
+    return { backgroundColor: "rgba(251,146,60,0.15)", color: "rgb(234,88,12)", border: "1px solid rgba(251,146,60,0.30)" }
+  }
+  return { backgroundColor: "rgba(107,114,128,0.12)", color: "rgb(107,114,128)", border: "1px solid rgba(107,114,128,0.20)" }
+}
+
 export default function MissionStreamView({ missionId, onClose }: Props) {
   const { events, status, error } = useMissionStream(missionId)
+  const [agentsExpanded, setAgentsExpanded] = useState(false)
+  const [approvalLoading, setApprovalLoading] = useState(false)
+  const [dismissedApprovals, setDismissedApprovals] = useState<Set<string>>(new Set())
 
   // Derive wave state from events
   const waves = useMemo<WaveState[]>(() => {
@@ -102,10 +134,79 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
     return waveOrder.map((id) => waveMap.get(id)!)
   }, [events])
 
+  // Derive agent lanes from events
+  const agentLanes = useMemo<AgentState[]>(() => {
+    const agentMap = new Map<string, AgentState>()
+    const agentOrder: string[] = []
+
+    for (const evt of events) {
+      const agentName = evt.agent as string | undefined
+      if (!agentName) continue
+
+      if (!agentMap.has(agentName)) {
+        agentMap.set(agentName, { name: agentName, steps: [], isActive: false })
+        agentOrder.push(agentName)
+      }
+
+      const agentState = agentMap.get(agentName)!
+
+      if (evt.type === "step_start") {
+        agentState.steps.push({
+          id: evt.stepId as string,
+          label: (evt.label as string) ?? (evt.stepId as string),
+          status: "running",
+        })
+        agentState.isActive = true
+      } else if (evt.type === "step_done") {
+        const step = agentState.steps.find((s) => s.id === evt.stepId)
+        if (step) {
+          step.status = "done"
+        }
+        // isActive = still has running steps
+        agentState.isActive = agentState.steps.some((s) => s.status === "running")
+      }
+    }
+
+    return agentOrder.map((name) => agentMap.get(name)!)
+  }, [events])
+
+  // Derive pending approval from events (most recent undismissed one)
+  const pendingApproval = useMemo<PendingApproval | null>(() => {
+    for (let i = events.length - 1; i >= 0; i--) {
+      const evt = events[i]
+      if (evt.type === "HumanApprovalRequired") {
+        const approvalId = evt.approvalId as string
+        if (!dismissedApprovals.has(approvalId)) {
+          return {
+            approvalId,
+            summary: (evt.summary as string) ?? "",
+            riskLevel: (evt.riskLevel as string) ?? "R1",
+          }
+        }
+      }
+    }
+    return null
+  }, [events, dismissedApprovals])
+
   const hasMissionDone = events.some((e) => e.type === "mission_done")
-  const hasHumanApproval = events.some((e) => e.type === "HumanApprovalRequired")
+  const hasAgents = agentLanes.length > 0
 
   const banner = statusBanner(status)
+
+  async function handleApprovalDecide(decision: "approve" | "reject" | "modify") {
+    if (!pendingApproval || approvalLoading) return
+    setApprovalLoading(true)
+    try {
+      await fetch(`/api/approvals/${pendingApproval.approvalId}/decide`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision }),
+      })
+    } finally {
+      setApprovalLoading(false)
+      setDismissedApprovals((prev) => new Set([...prev, pendingApproval.approvalId]))
+    }
+  }
 
   return (
     <div
@@ -142,20 +243,6 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
         {banner.text}
       </div>
 
-      {/* Human approval banner */}
-      {hasHumanApproval && (
-        <div
-          className="px-3 py-2 text-xs"
-          style={{
-            backgroundColor: "rgba(251,146,60,0.10)",
-            color: "rgb(234,88,12)",
-            borderBottom: "1px solid rgba(251,146,60,0.20)",
-          }}
-        >
-          ⚠️ Aprovação necessária — aguardando gate humano
-        </div>
-      )}
-
       {/* Error detail */}
       {error && (
         <div
@@ -166,8 +253,80 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
         </div>
       )}
 
-      {/* Wave cards */}
+      {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-2 px-3 py-3">
+
+        {/* ── Inline Approval Panel (EVO-025) ── */}
+        {pendingApproval && (
+          <div
+            className="rounded-xl flex flex-col gap-2"
+            style={{
+              padding: "10px 12px",
+              backgroundColor: "rgba(251,146,60,0.08)",
+              border: "1px solid rgba(251,146,60,0.35)",
+            }}
+          >
+            {/* Title */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-semibold" style={{ color: "rgb(234,88,12)" }}>
+                ⚠️ Gate de Aprovação
+              </span>
+              <span
+                className="text-xs rounded px-1.5 py-0.5 font-medium"
+                style={riskBadgeStyle(pendingApproval.riskLevel)}
+              >
+                {pendingApproval.riskLevel}
+              </span>
+            </div>
+
+            {/* Summary */}
+            <p className="text-xs leading-snug" style={{ color: "var(--text-secondary)" }}>
+              {pendingApproval.summary}
+            </p>
+
+            {/* Action buttons */}
+            <div className="flex gap-1.5 flex-wrap">
+              <button
+                disabled={approvalLoading}
+                onClick={() => handleApprovalDecide("approve")}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
+                style={{
+                  backgroundColor: "rgba(16,185,129,0.15)",
+                  color: "rgb(16,185,129)",
+                  border: "1px solid rgba(16,185,129,0.30)",
+                }}
+              >
+                {approvalLoading ? "..." : "Aprovar"}
+              </button>
+              <button
+                disabled={approvalLoading}
+                onClick={() => handleApprovalDecide("reject")}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
+                style={{
+                  backgroundColor: "rgba(239,68,68,0.12)",
+                  color: "rgb(239,68,68)",
+                  border: "1px solid rgba(239,68,68,0.28)",
+                }}
+              >
+                {approvalLoading ? "..." : "Rejeitar"}
+              </button>
+              <button
+                disabled={approvalLoading}
+                onClick={() => handleApprovalDecide("modify")}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
+                style={{
+                  backgroundColor: "rgba(251,146,60,0.12)",
+                  color: "rgb(217,119,6)",
+                  border: "1px solid rgba(251,146,60,0.28)",
+                }}
+              >
+                {approvalLoading ? "..." : "Modificar"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Wave cards */}
         {waves.map((wave) => (
           <WaveProgressCard
             key={wave.id}
@@ -177,6 +336,74 @@ export default function MissionStreamView({ missionId, onClose }: Props) {
             status={wave.status}
           />
         ))}
+
+        {/* ── Agent Lanes Section (EVO-024) ── */}
+        {hasAgents && (
+          <div
+            className="rounded-xl flex flex-col"
+            style={{
+              border: "1px solid var(--border-main)",
+              backgroundColor: "var(--background-nav)",
+              overflow: "hidden",
+            }}
+          >
+            {/* Collapsible header */}
+            <button
+              onClick={() => setAgentsExpanded((v) => !v)}
+              className="flex items-center justify-between px-3 py-2 transition-colors text-left w-full"
+              style={{
+                color: "var(--text-secondary)",
+                borderBottom: agentsExpanded ? "1px solid var(--border-main)" : "none",
+              }}
+            >
+              <span className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>
+                Agentes
+                <span
+                  className="ml-1.5 text-xs rounded-full px-1.5 py-0.5"
+                  style={{
+                    backgroundColor: "rgba(107,114,128,0.15)",
+                    color: "var(--text-tertiary)",
+                  }}
+                >
+                  {agentLanes.length}
+                </span>
+              </span>
+              <svg
+                width={14}
+                height={14}
+                viewBox="0 0 14 14"
+                fill="none"
+                style={{
+                  transform: agentsExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 150ms",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                <path
+                  d="M3 5l4 4 4-4"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+
+            {/* Agent lanes */}
+            {agentsExpanded && (
+              <div className="flex flex-col gap-1.5 p-2">
+                {agentLanes.map((lane) => (
+                  <AgentLane
+                    key={lane.name}
+                    agent={lane.name}
+                    steps={lane.steps}
+                    isActive={lane.isActive}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Mission done banner */}
         {hasMissionDone && (
