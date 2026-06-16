@@ -3,6 +3,9 @@
 import React, { useState } from "react";
 import EconomicDashboard from "@/components/EconomicDashboard";
 import AutopilotAgenda from "@/components/AutopilotAgenda";
+import MCPServerPanel from "@/components/MCPServerPanel";
+import OperatorsPanel from "@/components/OperatorsPanel";
+import CLIView from "@/components/CLIView";
 
 const tabs = [
   { id: "agents", label: "Agentes & Modelos" },
@@ -54,6 +57,47 @@ const costData = [
   { model: "Qwen2.5-coder", usage: "R$ 1,90", percent: 16, color: "#8b5cf6" },
 ];
 
+function CollapsibleSection({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mb-4">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-colors mb-2"
+        style={{
+          backgroundColor: "var(--background-menu-white)",
+          border: "1px solid var(--border-main)",
+          color: "var(--text-primary)",
+        }}
+      >
+        <span>{title}</span>
+        <svg
+          className="w-4 h-4 transition-transform"
+          style={{
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            color: "var(--text-tertiary)",
+          }}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
 export default function EngineView() {
   const [activeTab, setActiveTab] = useState("agents");
 
@@ -96,6 +140,21 @@ export default function EngineView() {
 
         {/* EVO-037 — Autopilot Agenda */}
         <AutopilotAgenda />
+
+        {/* EVO-041 — OMNIS MCP Server UI */}
+        <CollapsibleSection title="MCP Server — OMNIS Core">
+          <MCPServerPanel />
+        </CollapsibleSection>
+
+        {/* EVO-043 — Multi-user Operators Shell */}
+        <CollapsibleSection title="Operadores — RBAC Shell">
+          <OperatorsPanel />
+        </CollapsibleSection>
+
+        {/* EVO-045 — OMNIS CLI Mirror View */}
+        <CollapsibleSection title="CLI Mirror — OMNIS Terminal">
+          <CLIView />
+        </CollapsibleSection>
 
         {/* Agentes & Modelos */}
         {activeTab === "agents" && (
