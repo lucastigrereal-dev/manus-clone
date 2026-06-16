@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
+import HealthHeader from "@/components/HealthHeader";
+import { useUiStore } from "@/stores/uiStore";
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -10,6 +12,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuToggle, onSparkleClick }: HeaderProps) {
   const [versionOpen, setVersionOpen] = useState(false);
+  const setCommandPaletteOpen = useUiStore((s) => s.setCommandPaletteOpen);
 
   return (
     <header className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: "1px solid var(--border-main)" }}>
@@ -39,6 +42,15 @@ export default function Header({ onMenuToggle, onSparkleClick }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        <HealthHeader />
+        <button
+          onClick={() => setCommandPaletteOpen(true)}
+          className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-colors hover:bg-neutral-100"
+          style={{ color: "var(--text-tertiary)", border: "1px solid var(--border-main)" }}
+          title="Abrir paleta de comandos (Ctrl+K)"
+        >
+          ⌘K
+        </button>
         <ThemeToggle />
         <button
           onClick={onSparkleClick}

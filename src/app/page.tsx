@@ -14,6 +14,11 @@ import ScheduledView from "@/components/views/ScheduledView";
 import LibraryView from "@/components/views/LibraryView";
 import AgentsView from "@/components/views/AgentsView";
 import EngineView from "@/components/views/EngineView";
+import CommandPalette from "@/components/CommandPalette";
+import InlineToast from "@/components/InlineToast";
+import PromptChips from "@/components/PromptChips";
+import { useOmnisShortcuts } from "@/hooks/useOmnisShortcuts";
+import { useDraftAutosave } from "@/hooks/useDraftAutosave";
 
 interface Message {
   id: string;
@@ -49,6 +54,16 @@ export default function Home() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [currentAgent, setCurrentAgent] = useState("aurora");
+
+  // Wire global keyboard shortcuts
+  useOmnisShortcuts();
+
+  // Autosave draft
+  const { clear: clearDraft } = useDraftAutosave({
+    key: 'draft:global',
+    value: inputValue,
+    onRestore: setInputValue,
+  });
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -128,13 +143,14 @@ export default function Home() {
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
+      clearDraft();
     } catch (err: any) {
       setChatError(err.message || "Erro ao conectar com Ollama. Verifique se está rodando na porta 11434.");
     } finally {
       setIsLoading(false);
       setStreamingContent("");
     }
-  }, [inputValue, isLoading, currentAgent, messages]);
+  }, [inputValue, isLoading, currentAgent, messages, clearDraft]);
 
   const hasMessages = messages.length > 0 || isLoading || streamingContent.length > 0;
 
@@ -203,6 +219,7 @@ export default function Home() {
                       disabled={isLoading}
                     />
                     <QuickActions onSelect={handleModeSelect} selectedMode={selectedMode} />
+                    <PromptChips onChipSelect={setInputValue} />
                   </div>
                   <TaskList />
                 </>
@@ -220,6 +237,8 @@ export default function Home() {
 
       <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <CommandPalette />
+      <InlineToast />
     </div>
   );
 }

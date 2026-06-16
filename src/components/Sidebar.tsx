@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import MissionHistory from "@/components/MissionHistory";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -103,6 +104,13 @@ export default function Sidebar({ isOpen, onClose, activeView, onNavChange, onPr
               </li>
             ))}
           </ul>
+        </div>
+
+        <div className="mt-4 px-3">
+          <span className="text-xs font-semibold uppercase tracking-wider px-3 mb-1 block" style={{ color: "var(--text-disable)" }}>
+            Missões Recentes
+          </span>
+          <MissionHistory />
         </div>
       </nav>
 
