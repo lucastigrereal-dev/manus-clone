@@ -6,6 +6,9 @@ import AutopilotAgenda from "@/components/AutopilotAgenda";
 import MCPServerPanel from "@/components/MCPServerPanel";
 import OperatorsPanel from "@/components/OperatorsPanel";
 import CLIView from "@/components/CLIView";
+import PolicyEditor from "@/components/PolicyEditor";
+import PromptPoliciesPanel from "@/components/PromptPoliciesPanel";
+import SyncStatusPanel from "@/components/SyncStatusPanel";
 
 const tabs = [
   { id: "agents", label: "Agentes & Modelos" },
@@ -154,6 +157,21 @@ export default function EngineView() {
         {/* EVO-045 — OMNIS CLI Mirror View */}
         <CollapsibleSection title="CLI Mirror — OMNIS Terminal">
           <CLIView />
+        </CollapsibleSection>
+
+        {/* EVO-047 — Policy-as-code Runtime */}
+        <CollapsibleSection title="Policy-as-Code — OPA Rego Runtime">
+          <PolicyEditor />
+        </CollapsibleSection>
+
+        {/* EVO-048 — Self-improving Prompt Policies */}
+        <CollapsibleSection title="Políticas de Prompt Auto-Melhoráveis">
+          <PromptPoliciesPanel />
+        </CollapsibleSection>
+
+        {/* EVO-049 — Cross-client Mission Sync */}
+        <CollapsibleSection title="Sincronização Cross-Client">
+          <SyncStatusPanel />
         </CollapsibleSection>
 
         {/* Agentes & Modelos */}

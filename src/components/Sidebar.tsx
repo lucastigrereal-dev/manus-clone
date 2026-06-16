@@ -27,6 +27,7 @@ const navItems = [
   { id: "library", label: "Biblioteca", icon: "📚", view: "library" },
   { id: "canvas", label: "Canvas", icon: "🔮", view: "canvas" },
   { id: "factory-os", label: "Factory OS", icon: "🏭", view: "factory-os" },
+  { id: "knowledge", label: "Conhecimento", icon: "🕸️", view: "knowledge" },
 ];
 
 const engineNav = { id: "engine", label: "Motor", icon: "🔧", view: "engine" };

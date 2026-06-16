@@ -31,6 +31,7 @@ import { useMissionStream } from "@/hooks/useMissionStream";
 import MissionTabs from "@/components/MissionTabs";
 import CanvasView from "@/app/views/CanvasView";
 import FactoryOSView from "@/app/views/FactoryOSView";
+import KnowledgeGraphView from "@/app/views/KnowledgeGraphView";
 import BlockerBanner from "@/components/BlockerBanner";
 
 interface Message {
@@ -50,6 +51,7 @@ const navItems = [
   { id: "engine", label: "Motor", view: "engine" },
   { id: "canvas", label: "Canvas", view: "canvas" },
   { id: "factory-os", label: "Factory OS", view: "factory-os" },
+  { id: "knowledge", label: "Conhecimento", view: "knowledge" },
 ];
 
 const modeToAgent: Record<string, string> = {
@@ -296,6 +298,7 @@ export default function Home() {
           {activeView === "engine" && <EngineView />}
           {activeView === "canvas" && <CanvasView />}
           {activeView === "factory-os" && <FactoryOSView />}
+          {activeView === "knowledge" && <KnowledgeGraphView />}
         </div>
       </main>
 
