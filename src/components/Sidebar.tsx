@@ -1,7 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import MissionHistory from "@/components/MissionHistory";
+
+interface Project {
+  id: string
+  name: string
+  status: 'active' | 'done' | 'failed' | 'unknown'
+  factory?: string
+}
 
 interface SidebarProps {
   isOpen: boolean;
@@ -22,15 +29,21 @@ const navItems = [
 
 const engineNav = { id: "engine", label: "Motor", icon: "🔧", view: "engine" };
 
-const projects = [
-  { id: "familia-tigre", label: "Família Tigre Travel 2026" },
-  { id: "publisher-os", label: "Publisher OS" },
-  { id: "app-factory", label: "App Factory v3.1" },
-  { id: "lead-mining", label: "Lead Mining Engine" },
-  { id: "omnisverso", label: "OMNISVERSO Runtime" },
-];
-
 export default function Sidebar({ isOpen, onClose, activeView, onNavChange, onProfileClick, onSettingsClick }: SidebarProps) {
+  const [projects, setProjects] = useState<Project[]>([
+    { id: 'fam-tigre', name: 'Família Tigre Travel 2026', status: 'active' },
+    { id: 'publisher-os', name: 'Publisher OS', status: 'active' },
+    { id: 'app-factory', name: 'App Factory v3.1', status: 'active' },
+    { id: 'lead-mining', name: 'Lead Mining Engine', status: 'active' },
+    { id: 'omnisverso', name: 'OMNISVERSO Runtime', status: 'active' },
+  ])
+  useEffect(() => {
+    fetch('/api/projects')
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data) && data.length) setProjects(data) })
+      .catch(() => undefined)
+  }, [])
+
   return (
     <aside
       className={`fixed md:relative z-50 h-full w-[260px] flex flex-col transition-transform duration-300 ${
@@ -95,11 +108,11 @@ export default function Sidebar({ isOpen, onClose, activeView, onNavChange, onPr
             <button className="p-1 rounded hover:bg-neutral-100 transition-colors" style={{ color: "var(--text-tertiary)" }}>+</button>
           </div>
           <ul className="space-y-0.5">
-            {projects.map((project) => (
-              <li key={project.id}>
+            {projects.map((p) => (
+              <li key={p.id}>
                 <button className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors hover:bg-neutral-50 text-left" style={{ color: "var(--text-secondary)" }}>
-                  <span>📁</span>
-                  <span className="truncate">{project.label}</span>
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${p.status === 'active' ? 'bg-emerald-400' : p.status === 'failed' ? 'bg-red-400' : 'bg-gray-400'}`} />
+                  <span className="truncate">{p.name}</span>
                 </button>
               </li>
             ))}
