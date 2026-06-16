@@ -1,14 +1,8 @@
-"use client";
+'use client'
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import MissionHistory from "@/components/MissionHistory";
-
-interface Project {
-  id: string
-  name: string
-  status: 'active' | 'done' | 'failed' | 'unknown'
-  factory?: string
-}
+import ProjectPanel from "@/components/ProjectPanel";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -33,20 +27,6 @@ const navItems = [
 const engineNav = { id: "engine", label: "Motor", icon: "🔧", view: "engine" };
 
 export default function Sidebar({ isOpen, onClose, activeView, onNavChange, onProfileClick, onSettingsClick }: SidebarProps) {
-  const [projects, setProjects] = useState<Project[]>([
-    { id: 'fam-tigre', name: 'Família Tigre Travel 2026', status: 'active' },
-    { id: 'publisher-os', name: 'Publisher OS', status: 'active' },
-    { id: 'app-factory', name: 'App Factory v3.1', status: 'active' },
-    { id: 'lead-mining', name: 'Lead Mining Engine', status: 'active' },
-    { id: 'omnisverso', name: 'OMNISVERSO Runtime', status: 'active' },
-  ])
-  useEffect(() => {
-    fetch('/api/projects')
-      .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data) && data.length) setProjects(data) })
-      .catch(() => undefined)
-  }, [])
-
   // Status real do runtime — NÃO hardcode. Reflete /api/health (que prova :8765).
   const [runtime, setRuntime] = useState<{ online: boolean; okCount: number; total: number }>({
     online: false,
@@ -133,21 +113,8 @@ export default function Sidebar({ isOpen, onClose, activeView, onNavChange, onPr
           </li>
         </ul>
 
-        <div className="mt-4 px-3">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-disable)" }}>Projetos</span>
-            <button className="p-1 rounded hover:bg-neutral-100 transition-colors" style={{ color: "var(--text-tertiary)" }}>+</button>
-          </div>
-          <ul className="space-y-0.5">
-            {projects.map((p) => (
-              <li key={p.id}>
-                <button className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors hover:bg-neutral-50 text-left" style={{ color: "var(--text-secondary)" }}>
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${p.status === 'active' ? 'bg-emerald-400' : p.status === 'failed' ? 'bg-red-400' : 'bg-gray-400'}`} />
-                  <span className="truncate">{p.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+        <div className="mt-4">
+          <ProjectPanel />
         </div>
 
         <div className="mt-4 px-3">
