@@ -13,13 +13,17 @@ interface OmnisCommand {
 }
 
 const COMMANDS: OmnisCommand[] = [
-  { id: 'new-mission', label: 'Nova missão', kind: 'route', icon: '✏️' },
-  { id: 'akasha', label: 'Buscar no AKASHA', kind: 'route', icon: '🧠' },
-  { id: 'app-factory', label: 'App Factory', kind: 'factory', icon: '🏭' },
-  { id: 'dev-build', label: 'Dev Build', kind: 'factory', icon: '💻' },
-  { id: 'instagram', label: 'Instagram', kind: 'factory', icon: '📸' },
-  { id: 'kratos', label: 'Abrir KRATOS', kind: 'external', icon: '🔗', shortcut: ':5100' },
-  { id: 'focus', label: 'Modo Foco', kind: 'action', icon: '🎯' },
+  { id: 'new-mission',    label: 'Nova missão',          kind: 'action',   icon: '✏️' },
+  { id: 'new-project',    label: 'Criar projeto',        kind: 'action',   icon: '📁' },
+  { id: 'search-akasha',  label: 'Buscar no AKASHA',     kind: 'action',   icon: '🧠' },
+  { id: 'deep-research',  label: 'Ativar Deep Research', kind: 'action',   icon: '🔬' },
+  { id: 'select-model',   label: 'Trocar modelo',        kind: 'action',   icon: '⚡' },
+  { id: 'focus',          label: 'Modo Foco',            kind: 'action',   icon: '🎯' },
+  { id: 'open-settings',  label: 'Configurações',        kind: 'route',    icon: '⚙️' },
+  { id: 'app-factory',    label: 'App Factory',          kind: 'factory',  icon: '🏭' },
+  { id: 'dev-build',      label: 'Dev Build',            kind: 'factory',  icon: '💻' },
+  { id: 'instagram',      label: 'Instagram',            kind: 'factory',  icon: '📸' },
+  { id: 'kratos',         label: 'Abrir KRATOS',         kind: 'external', icon: '🔗', shortcut: ':5100' },
 ]
 
 const KIND_LABELS: Record<string, string> = {
