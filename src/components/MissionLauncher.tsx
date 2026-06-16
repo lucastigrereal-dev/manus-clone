@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import WhatIfSimulator from "@/components/WhatIfSimulator";
 
 type RiskLevel = "R0" | "R1" | "R2" | "R3";
 type Factory = "Research" | "Content" | "App" | "Instagram" | "Automation";
@@ -34,6 +35,21 @@ export default function MissionLauncher({ onLaunched }: MissionLauncherProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<MissionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showSim, setShowSim] = useState(false);
+  const simTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce: show simulator 800ms after objective reaches > 20 chars
+  useEffect(() => {
+    if (simTimerRef.current) clearTimeout(simTimerRef.current);
+    if (objective.length > 20) {
+      simTimerRef.current = setTimeout(() => setShowSim(true), 800);
+    } else {
+      setShowSim(false);
+    }
+    return () => {
+      if (simTimerRef.current) clearTimeout(simTimerRef.current);
+    };
+  }, [objective]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,6 +200,22 @@ export default function MissionLauncher({ onLaunched }: MissionLauncherProps) {
               ))}
             </div>
           </div>
+
+          {/* What-if simulator — shown after 20+ chars (debounced 800ms) */}
+          {showSim && (
+            <div
+              className="rounded-xl p-3"
+              style={{
+                border: "1px solid var(--border-light)",
+                backgroundColor: "var(--background-gray-main)",
+              }}
+            >
+              <WhatIfSimulator
+                objective={objective}
+                onSelect={(s) => setRiskLevel(s.risk as RiskLevel)}
+              />
+            </div>
+          )}
 
           {error && (
             <p className="text-xs" style={{ color: "#991b1b" }}>

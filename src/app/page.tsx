@@ -28,6 +28,7 @@ import ExecutionSidecar from "@/components/ExecutionSidecar";
 import { useUiStore } from "@/stores/uiStore";
 import { useMissionStream } from "@/hooks/useMissionStream";
 import MissionTabs from "@/components/MissionTabs";
+import CanvasView from "@/app/views/CanvasView";
 
 interface Message {
   id: string;
@@ -44,6 +45,7 @@ const navItems = [
   { id: "automations", label: "Automações", view: "scheduled" },
   { id: "library", label: "Biblioteca", view: "library" },
   { id: "engine", label: "Motor", view: "engine" },
+  { id: "canvas", label: "Canvas", view: "canvas" },
 ];
 
 const modeToAgent: Record<string, string> = {
@@ -271,6 +273,7 @@ export default function Home() {
           {activeView === "library" && <LibraryView />}
           {activeView === "agents" && <AgentsView />}
           {activeView === "engine" && <EngineView />}
+          {activeView === "canvas" && <CanvasView />}
         </div>
       </main>
 

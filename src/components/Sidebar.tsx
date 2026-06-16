@@ -25,6 +25,7 @@ const navItems = [
   { id: "skills", label: "Skills", icon: "🧩", view: "plugins" },
   { id: "automations", label: "Automações", icon: "⚡", view: "scheduled" },
   { id: "library", label: "Biblioteca", icon: "📚", view: "library" },
+  { id: "canvas", label: "Canvas", icon: "🔮", view: "canvas" },
 ];
 
 const engineNav = { id: "engine", label: "Motor", icon: "🔧", view: "engine" };
