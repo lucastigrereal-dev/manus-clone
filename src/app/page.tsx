@@ -34,6 +34,8 @@ import FactoryOSView from "@/app/views/FactoryOSView";
 import KnowledgeGraphView from "@/app/views/KnowledgeGraphView";
 import BlockerBanner from "@/components/BlockerBanner";
 import MissionRunner from "@/components/MissionRunner";
+import IntentChip from "@/components/IntentChip";
+import type { ChatCommandResponse } from "@/types/calm";
 
 interface Message {
   id: string;
@@ -78,6 +80,7 @@ export default function Home() {
   const [streamingMissionId, setStreamingMissionId] = useState<string | null>(null);
   const [showArtifacts, setShowArtifacts] = useState(false);
   const [missionEntry, setMissionEntry] = useState<{ text: string; key: number } | null>(null);
+  const [intentChip, setIntentChip] = useState<ChatCommandResponse | null>(null);
   const addToast = useUiStore((s) => s.addToast);
 
   // Sidecar: separate stream hook (MissionStreamView keeps its own connection)
@@ -128,6 +131,56 @@ export default function Home() {
     setChatError(null);
 
     try {
+      // CALM: classify intent before executing
+      const cmdRes = await fetch("/api/chat-command", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, agent: currentAgent }),
+      });
+
+      if (!cmdRes.ok) throw new Error(`chat-command HTTP ${cmdRes.status}`);
+      const cmd = (await cmdRes.json()) as ChatCommandResponse;
+
+      // Show intent chip for 1.5s
+      setIntentChip(cmd);
+      setTimeout(() => setIntentChip(null), 1500);
+
+      // Route by kind
+      if (cmd.kind === "mission_launch" && cmd.mission_text) {
+        setMissionEntry({ text: cmd.mission_text, key: Date.now() });
+        clearDraft();
+        return;
+      }
+
+      if (cmd.kind === "clarification" && cmd.text) {
+        const assistantMsg: Message = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          role: "assistant",
+          content: cmd.text + (cmd.clarification_options ? "\n\n" + cmd.clarification_options.map((o) => `• ${o}`).join("\n") : ""),
+          agent: "aurora",
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        clearDraft();
+        return;
+      }
+
+      if (cmd.kind === "tool_result" && cmd.tool_result != null) {
+        const assistantMsg: Message = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          role: "assistant",
+          content: typeof cmd.tool_result === "string"
+            ? cmd.tool_result
+            : JSON.stringify(cmd.tool_result, null, 2),
+          agent: currentAgent,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        clearDraft();
+        return;
+      }
+
+      // Fallback: assistant_text or unhandled → existing /api/chat streaming flow
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -251,6 +304,13 @@ export default function Home() {
                     streamingContent={streamingContent}
                     currentAgent={currentAgent}
                   />
+                  {intentChip && (
+                    <div className="px-4 pb-1">
+                      <div className="max-w-3xl mx-auto">
+                        <IntentChip intent={intentChip.intent} />
+                      </div>
+                    </div>
+                  )}
                   {chatError && (
                     <div className="px-4 pb-2">
                       <div className="max-w-3xl mx-auto p-3 rounded-xl text-sm" style={{ backgroundColor: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca" }}>
