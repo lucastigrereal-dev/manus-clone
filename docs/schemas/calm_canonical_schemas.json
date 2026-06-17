@@ -1,0 +1,230 @@
+{
+  "$schema": "http://json-schema.org/draft-2020-12/schema",
+  "title": "CALM Expansion — Canonical Schemas",
+  "description": "Schemas canônicos do pacote de expansão CALM Shell. Wave 3A: snake_case, ULID, risk_level (NUNCA riskTier/riskLevel camelCase).",
+  "version": "1.0.0",
+  "date": "2026-06-17",
+  "$defs": {
+    "RiskLevel": {
+      "type": "string",
+      "enum": ["R0", "R1", "R2", "R3", "R4"],
+      "description": "R0=trivial auto, R1=baixo, R2=médio requer humano, R3=alto humano+council, R4=crítico bloqueado"
+    },
+    "ULID": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "Identificador ULID — NUNCA UUID v4 nem Math.random"
+    },
+    "SystemHealth": {
+      "type": "object",
+      "description": "Ideia #1 Pulse Bar + #10 HealthCard — estado de saúde agregado",
+      "required": ["health_id", "score", "climate", "services", "checked_at"],
+      "properties": {
+        "health_id": { "$ref": "#/$defs/ULID" },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "climate": {
+          "type": "string",
+          "enum": ["sol", "nuvens", "chuva", "tempestade", "fogo"],
+          "description": "Ideia #8 Clima Operacional — sol=estável fogo=crítico"
+        },
+        "services": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ServiceStatus" }
+        },
+        "bottleneck": {
+          "type": ["string", "null"],
+          "description": "Ideia #24 Radar de Gargalo — o que está travando agora"
+        },
+        "checked_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ServiceStatus": {
+      "type": "object",
+      "required": ["name", "status", "latency_ms"],
+      "properties": {
+        "name": { "type": "string", "examples": ["core", "akasha", "kratos", "redis", "litellm"] },
+        "status": { "type": "string", "enum": ["ok", "slow", "degraded", "down"] },
+        "latency_ms": { "type": "integer", "minimum": 0 },
+        "port": { "type": ["integer", "null"] },
+        "detail": { "type": ["string", "null"], "description": "Causa quando degradado" }
+      }
+    },
+    "Diagnosis": {
+      "type": "object",
+      "description": "Ideia #2 Médico + #3 Diagnóstico 3 níveis + #16 Perito Criminal",
+      "required": ["diagnosis_id", "level_leigo", "next_action", "created_at"],
+      "properties": {
+        "diagnosis_id": { "$ref": "#/$defs/ULID" },
+        "level_leigo": { "type": "string", "description": "Camada 1: linguagem simples" },
+        "level_operacional": { "type": "string", "description": "Camada 2: técnico-operacional" },
+        "level_tecnico": { "type": "object", "description": "Camada 3: logs, stacktrace, endpoint, payload" },
+        "hypothesis": { "type": ["string", "null"], "description": "Perito: hipótese principal" },
+        "evidence": { "type": "array", "items": { "type": "string" } },
+        "probable_cause": { "type": ["string", "null"] },
+        "next_action": { "type": "string", "description": "Ideia #4 — a única próxima ação certa" },
+        "severity": { "$ref": "#/$defs/RiskLevel" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Decision": {
+      "type": "object",
+      "description": "Ideia #20 Inbox de Decisões + #21 O que precisa de mim",
+      "required": ["decision_id", "title", "kind", "risk_level", "status", "created_at"],
+      "properties": {
+        "decision_id": { "$ref": "#/$defs/ULID" },
+        "title": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": ["approval", "ingestion_choice", "mission_modify", "conflict_resolution"]
+        },
+        "risk_level": { "$ref": "#/$defs/RiskLevel" },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "decided", "expired"]
+        },
+        "mission_id": { "type": ["string", "null"] },
+        "options": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "As escolhas disponíveis para o humano"
+        },
+        "blocking": {
+          "type": "boolean",
+          "description": "Se true, trava progresso até decisão — entra em 'o que precisa de mim'"
+        },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "RiskSignal": {
+      "type": "object",
+      "description": "Ideia #7 Radar de Risco Invisível + #22 Sussurros",
+      "required": ["signal_id", "level", "tier", "reason", "raised_at"],
+      "properties": {
+        "signal_id": { "$ref": "#/$defs/ULID" },
+        "level": {
+          "type": "string",
+          "enum": ["sussurro", "aviso", "alerta", "bloqueio"],
+          "description": "Hierarquia de interrupção — sussurro não interrompe, bloqueio sim"
+        },
+        "tier": { "$ref": "#/$defs/RiskLevel" },
+        "reason": { "type": "string" },
+        "factors": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "arquivos_sensiveis, comandos, apis_externas, banco, producao, historico_falha"
+        },
+        "mission_id": { "type": ["string", "null"] },
+        "raised_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "OperationalForecast": {
+      "type": "object",
+      "description": "Ideia #23 Forecast de Problema — prevê treta antes de explodir",
+      "required": ["forecast_id", "action", "failure_probability", "reason"],
+      "properties": {
+        "forecast_id": { "$ref": "#/$defs/ULID" },
+        "action": { "type": "string", "description": "A ação que o usuário quer fazer" },
+        "failure_probability": { "type": "number", "minimum": 0, "maximum": 1 },
+        "reason": { "type": "string" },
+        "recommendation": { "type": "string", "description": "O que fazer primeiro" },
+        "based_on": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "servico_degradado, dependencia_necessaria, historico_falha"
+        }
+      }
+    },
+    "BlackBoxRun": {
+      "type": "object",
+      "description": "Ideia #15 Caixa Preta — cápsula de auditoria por missão",
+      "required": ["blackbox_id", "run_id", "intent_original", "result", "created_at"],
+      "properties": {
+        "blackbox_id": { "$ref": "#/$defs/ULID" },
+        "run_id": { "$ref": "#/$defs/ULID" },
+        "intent_original": { "type": "string" },
+        "plan": { "type": "array", "items": { "type": "string" } },
+        "tools_called": { "type": "array", "items": { "type": "string" } },
+        "approvals": { "type": "array", "items": { "type": "object" } },
+        "files_touched": { "type": "array", "items": { "type": "string" } },
+        "events": { "type": "array", "items": { "type": "object" } },
+        "result": { "type": "string", "enum": ["success", "failure", "rejected", "cancelled"] },
+        "error": { "type": ["string", "null"] },
+        "lesson_learned": { "type": ["string", "null"], "description": "Vira precedent memory no AKASHA" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "UserFocusMode": {
+      "type": "object",
+      "description": "Ideia #17 Mood do Usuário + #18 Carga Cognitiva + #19 Fecha o Caos",
+      "required": ["mode", "set_at"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["foco_brutal", "visao_geral", "execucao", "zen", "normal"],
+          "description": "foco_brutal=1 coisa por vez, zen=só chat"
+        },
+        "open_items": { "type": "integer", "description": "Carga cognitiva — cards/missões/alertas abertos" },
+        "cognitive_limit": { "type": "integer", "default": 7, "description": "Acima disso, agrupa automaticamente" },
+        "set_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CanvasArtifact": {
+      "type": "object",
+      "description": "Ideias #31-38 — todas as superfícies de Canvas",
+      "required": ["canvas_id", "type", "title", "nodes", "edges", "created_from", "status"],
+      "properties": {
+        "canvas_id": { "$ref": "#/$defs/ULID" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "mindmap",
+            "kanban",
+            "calendar",
+            "doc",
+            "integration_map",
+            "automation_flow",
+            "system_map",
+            "mission_flow",
+            "artifact_board"
+          ]
+        },
+        "title": { "type": "string" },
+        "mission_id": { "type": ["string", "null"] },
+        "project_id": { "type": ["string", "null"] },
+        "nodes": { "type": "array", "items": { "$ref": "#/$defs/CanvasNode" } },
+        "edges": { "type": "array", "items": { "$ref": "#/$defs/CanvasEdge" } },
+        "created_from": { "type": "string", "enum": ["chat", "manual"], "description": "Regra suprema: chat abre o canvas" },
+        "status": { "type": "string", "enum": ["active", "archived"] },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CanvasNode": {
+      "type": "object",
+      "required": ["node_id", "label", "x", "y"],
+      "properties": {
+        "node_id": { "type": "string" },
+        "label": { "type": "string" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "kind": { "type": "string", "description": "service, mission, task, doc_section, integration, etc" },
+        "status": { "type": ["string", "null"], "enum": ["ok", "degraded", "down", "not_configured", null] },
+        "meta": { "type": "object", "description": "Dados extras: dependências, missões ligadas, próxima ação" }
+      }
+    },
+    "CanvasEdge": {
+      "type": "object",
+      "required": ["edge_id", "source", "target"],
+      "properties": {
+        "edge_id": { "type": "string" },
+        "source": { "type": "string" },
+        "target": { "type": "string" },
+        "label": { "type": ["string", "null"] },
+        "status": {
+          "type": ["string", "null"],
+          "enum": ["ok", "degraded", "failed", "not_configured", null],
+          "description": "Ideia #35 IntegrationMap — linha muda de cor por status da conexão"
+        }
+      }
+    }
+  }
+}

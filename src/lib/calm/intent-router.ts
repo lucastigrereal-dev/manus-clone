@@ -2,6 +2,7 @@
 // Classifica a intenção do usuário. Wave 1: regras keyword (rápido, zero custo LLM).
 // Wave 3: upgrade para classificação via LLM quando ambíguo.
 import type { IntentResult, IntentType, RiskLevel } from '@/types/calm'
+import { EXPANSION_RULES } from './intent-rules-expansion'
 
 interface Rule {
   intent: IntentType
@@ -13,6 +14,7 @@ interface Rule {
 
 // Ordem importa: regras mais específicas primeiro
 const RULES: Rule[] = [
+  ...EXPANSION_RULES,
   {
     intent: 'next_action_query',
     tool: null,
