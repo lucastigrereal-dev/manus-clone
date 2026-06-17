@@ -162,6 +162,20 @@ export const EXPANSION_RULES: ExpansionRule[] = [
       /quem mexeu.*miss[aã]o/i,   // delegation map #14
     ],
   },
+
+  // ── FOCO BRUTAL (W5-02) ──
+  {
+    intent: 'system_status',
+    tool: 'focus.brutal',
+    risk_level: 'R0',
+    needs_approval: false,
+    patterns: [
+      /t[oô] perdido/i,
+      /muita coisa.*(ao mesmo tempo|na cabe[cç]a)/i,
+      /n[aã]o (sei|sabe).*(por onde|o que) come[cç]ar/i,
+      /modo foco/i,
+    ],
+  },
 ]
 
 // Helper para extrair o canvas_type quando intent é canvas_open

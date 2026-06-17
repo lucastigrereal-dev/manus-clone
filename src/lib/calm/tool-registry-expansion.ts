@@ -71,4 +71,15 @@ export const EXPANSION_TOOLS: Record<string, ToolDefinition> = {
     result_card: 'DecisionInboxCard',
     description: 'Lista decisões pendentes que exigem a mão do humano',
   },
+  'focus.brutal': {
+    key: 'focus.brutal',
+    endpoint: '/api/focus/brutal',
+    method: 'POST',
+    risk_level: 'R0',
+    needs_approval: false,
+    produces_stream: false,
+    produces_artifact: false,
+    result_card: 'FocusBrutalCard',
+    description: 'Ativa modo foco brutal — esconde tudo, mostra 1 ação',
+  },
 }

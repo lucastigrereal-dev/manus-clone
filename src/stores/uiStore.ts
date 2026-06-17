@@ -27,6 +27,9 @@ const DEFAULT_TAB: MissionTab = {
 interface UiStore {
   focusMode: boolean
   toggleFocusMode: () => void
+  // W5-02 — foco brutal
+  bruteFocus: boolean
+  setBruteFocus: (v: boolean) => void
   commandPaletteOpen: boolean
   setCommandPaletteOpen: (open: boolean) => void
   activeFactory: string | null
@@ -61,6 +64,9 @@ function loadQuickActionUsage(): Record<string, number> {
 export const useUiStore = create<UiStore>((set) => ({
   focusMode: false,
   toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
+  // W5-02 — foco brutal
+  bruteFocus: false,
+  setBruteFocus: (v) => set({ bruteFocus: v }),
   commandPaletteOpen: false,
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   activeFactory: null,
