@@ -3,6 +3,7 @@
 import React, { useCallback } from 'react'
 import { Command } from 'cmdk'
 import { useUiStore } from '@/stores/uiStore'
+import { KRATOS_ORIGIN } from '@/lib/kratosOrigin'
 
 interface OmnisCommand {
   id: string
@@ -23,7 +24,7 @@ const COMMANDS: OmnisCommand[] = [
   { id: 'app-factory',    label: 'App Factory',          kind: 'factory',  icon: '🏭' },
   { id: 'dev-build',      label: 'Dev Build',            kind: 'factory',  icon: '💻' },
   { id: 'instagram',      label: 'Instagram',            kind: 'factory',  icon: '📸' },
-  { id: 'kratos',         label: 'Abrir KRATOS',         kind: 'external', icon: '🔗', shortcut: ':5100' },
+  { id: 'kratos',         label: 'Abrir KRATOS',         kind: 'external', icon: '🔗', shortcut: ':5174' },
 ]
 
 const KIND_LABELS: Record<string, string> = {
@@ -45,7 +46,7 @@ export default function CommandPalette() {
           toggleFocusMode()
           break
         case 'kratos':
-          window.open('http://localhost:5100', '_blank')
+          window.location.assign(KRATOS_ORIGIN)
           break
         case 'app-factory':
         case 'dev-build':
