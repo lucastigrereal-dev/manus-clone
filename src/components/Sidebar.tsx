@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import MissionHistory from "@/components/MissionHistory";
 import ProjectPanel from "@/components/ProjectPanel";
+import ConversationList from "@/components/ConversationList";
+import type { StoredMessage } from "@/stores/sessionStore";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,6 +13,7 @@ interface SidebarProps {
   onNavChange: (nav: string) => void;
   onProfileClick?: () => void;
   onSettingsClick?: () => void;
+  onSessionSelect?: (messages: StoredMessage[]) => void;
 }
 
 const navItems = [
@@ -26,7 +29,7 @@ const navItems = [
 
 const engineNav = { id: "engine", label: "Motor", icon: "🔧", view: "engine" };
 
-export default function Sidebar({ isOpen, onClose, activeView, onNavChange, onProfileClick, onSettingsClick }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, activeView, onNavChange, onProfileClick, onSettingsClick, onSessionSelect }: SidebarProps) {
   // Status real do runtime — NÃO hardcode. Reflete /api/health (que prova :8765).
   const [runtime, setRuntime] = useState<{ online: boolean; okCount: number; total: number }>({
     online: false,
@@ -116,6 +119,10 @@ export default function Sidebar({ isOpen, onClose, activeView, onNavChange, onPr
         <div className="mt-4">
           <ProjectPanel />
         </div>
+
+        {onSessionSelect && (
+          <ConversationList onSessionSelect={onSessionSelect} />
+        )}
 
         <div className="mt-4 px-3">
           <span className="text-xs font-semibold uppercase tracking-wider px-3 mb-1 block" style={{ color: "var(--text-disable)" }}>

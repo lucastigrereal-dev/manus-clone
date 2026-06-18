@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import Composer from "@/components/Composer";
@@ -28,6 +28,7 @@ import ExecutionSidecar from "@/components/ExecutionSidecar"
 import ArtifactPane from "@/components/ArtifactPane";
 import { useUiStore } from "@/stores/uiStore";
 import { useMissionStream } from "@/hooks/useMissionStream";
+import { useSessionStore, type StoredMessage } from "@/stores/sessionStore";
 import MissionTabs from "@/components/MissionTabs";
 import CanvasView from "@/app/views/CanvasView";
 import FactoryOSView from "@/app/views/FactoryOSView";
@@ -98,6 +99,42 @@ export default function Home() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Session persistence (Wave 2)
+  const { createSession, getActive, appendMessage, activeSessionId } = useSessionStore()
+  const syncedCountRef = useRef(0)
+  const isHydratingRef = useRef(false)
+
+  // Mount: hydrate messages from active session, or create a new one
+  useEffect(() => {
+    const session = getActive()
+    if (session && session.messages.length > 0) {
+      isHydratingRef.current = true
+      const hydrated = session.messages.map((m) => ({ ...m, timestamp: new Date(m.timestamp) }))
+      setMessages(hydrated)
+      syncedCountRef.current = hydrated.length
+      isHydratingRef.current = false
+    } else if (!session) {
+      createSession()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync new messages to the active session store (runs after each messages change)
+  useEffect(() => {
+    if (isHydratingRef.current || !activeSessionId) return
+    const newMsgs = messages.slice(syncedCountRef.current)
+    newMsgs.forEach((msg) => {
+      appendMessage(activeSessionId, { ...msg, timestamp: msg.timestamp.toISOString() })
+    })
+    syncedCountRef.current = messages.length
+  }, [messages]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Switch to a stored session selected from the sidebar
+  const handleSessionSelect = useCallback((storedMessages: StoredMessage[]) => {
+    const hydrated = storedMessages.map((m) => ({ ...m, timestamp: new Date(m.timestamp) }))
+    setMessages(hydrated)
+    syncedCountRef.current = hydrated.length
+  }, [])
 
   const contextPack = useContextPack({ messages, conversationId: "global" });
   const [streamingContent, setStreamingContent] = useState("");
@@ -247,8 +284,7 @@ export default function Home() {
     const text = inputValue.trim();
     if (!text || isLoading) return;
 
-    // EVO-012: intercept to show preflight cost estimate before sending
-    setPreflightPending(text);
+    doSendMessage(text);
   }, [inputValue, isLoading]);
 
   const hasMessages = messages.length > 0 || isLoading || streamingContent.length > 0;
@@ -262,6 +298,7 @@ export default function Home() {
         onNavChange={handleNavChange}
         onProfileClick={() => setProfileOpen(true)}
         onSettingsClick={() => setSettingsOpen(true)}
+        onSessionSelect={handleSessionSelect}
       />
 
       {sidebarOpen && (
