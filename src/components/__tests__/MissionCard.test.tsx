@@ -75,6 +75,11 @@ describe('MissionCard — botão Cancelar', () => {
     expect(screen.getByText('Cancelar')).toBeTruthy()
   })
 
+  it('mostra botão Cancelar para status waiting_approval', () => {
+    render(<MissionCard {...baseCard} status="waiting_approval" />)
+    expect(screen.getByText('Cancelar')).toBeTruthy()
+  })
+
   it('abre dialog ao clicar Cancelar', async () => {
     render(<MissionCard {...baseCard} status="running" />)
     const user = userEvent.setup()

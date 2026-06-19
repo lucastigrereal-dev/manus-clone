@@ -6,7 +6,7 @@ import { ptBR } from 'date-fns/locale'
 import { useUiStore } from '@/stores/uiStore'
 
 type RiskLevel = 'R0' | 'R1' | 'R2' | 'R3'
-type MissionStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled'
+type MissionStatus = 'queued' | 'waiting_approval' | 'running' | 'done' | 'failed' | 'cancelled'
 
 export interface MissionCardData {
   id: string
@@ -30,27 +30,30 @@ const RISK_COLORS: Record<RiskLevel, string> = {
 }
 
 const STATUS_BADGE: Record<MissionStatus, { label: string; bg: string; color: string }> = {
-  queued:    { label: 'Na fila',    bg: 'rgba(120,120,120,0.12)', color: '#7f7f7f' },
-  running:   { label: 'Rodando',    bg: 'rgba(245,158,11,0.12)',  color: '#f59e0b' },
-  done:      { label: 'Concluída',  bg: 'rgba(16,185,129,0.12)',  color: '#10b981' },
-  failed:    { label: 'Falhou',     bg: 'rgba(239,68,68,0.12)',   color: '#ef4444' },
-  cancelled: { label: 'Cancelada',  bg: 'rgba(100,100,100,0.12)', color: '#909090' },
+  queued:           { label: 'Na fila',    bg: 'rgba(120,120,120,0.12)', color: '#7f7f7f' },
+  waiting_approval: { label: 'Aguardando', bg: 'rgba(139,92,246,0.12)',  color: '#8b5cf6' },
+  running:          { label: 'Rodando',    bg: 'rgba(245,158,11,0.12)',  color: '#f59e0b' },
+  done:             { label: 'Concluída',  bg: 'rgba(16,185,129,0.12)',  color: '#10b981' },
+  failed:           { label: 'Falhou',     bg: 'rgba(239,68,68,0.12)',   color: '#ef4444' },
+  cancelled:        { label: 'Cancelada',  bg: 'rgba(100,100,100,0.12)', color: '#909090' },
 }
 
 const STATUS_BORDER: Record<MissionStatus, string> = {
-  queued:    'rgba(120,120,120,0.15)',
-  running:   'rgba(245,158,11,0.25)',
-  done:      'rgba(16,185,129,0.25)',
-  failed:    'rgba(239,68,68,0.25)',
-  cancelled: 'rgba(100,100,100,0.18)',
+  queued:           'rgba(120,120,120,0.15)',
+  waiting_approval: 'rgba(139,92,246,0.25)',
+  running:          'rgba(245,158,11,0.25)',
+  done:             'rgba(16,185,129,0.25)',
+  failed:           'rgba(239,68,68,0.25)',
+  cancelled:        'rgba(100,100,100,0.18)',
 }
 
 const STATUS_BG: Record<MissionStatus, string> = {
-  queued:    'rgba(120,120,120,0.04)',
-  running:   'rgba(245,158,11,0.06)',
-  done:      'rgba(16,185,129,0.06)',
-  failed:    'rgba(239,68,68,0.06)',
-  cancelled: 'rgba(100,100,100,0.05)',
+  queued:           'rgba(120,120,120,0.04)',
+  waiting_approval: 'rgba(139,92,246,0.06)',
+  running:          'rgba(245,158,11,0.06)',
+  done:             'rgba(16,185,129,0.06)',
+  failed:           'rgba(239,68,68,0.06)',
+  cancelled:        'rgba(100,100,100,0.05)',
 }
 
 export default function MissionCard({
@@ -71,7 +74,7 @@ export default function MissionCard({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
 
-  const canCancel = status === 'running' || status === 'queued'
+  const canCancel = status === 'running' || status === 'queued' || status === 'waiting_approval'
 
   async function handleConfirmCancel() {
     setCancelling(true)
