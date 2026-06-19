@@ -4,6 +4,7 @@ import { GET } from '../route'
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
+  vi.clearAllMocks()
 })
 
 // ── mock helper ────────────────────────────────────────────────────────────
@@ -99,5 +100,28 @@ describe('GET /api/health — Redis status via 8766', () => {
     const { score: degradedScore } = await callGET()
 
     expect(baseScore - degradedScore).toBe(5)
+  })
+
+  it('happy path: Core ok + Redis ok — coreOk constant used', async () => {
+    // coreOk provides healthy checks for memory and docker
+    // Both ports reachable: 8765 (core) returns coreOk, 8766 (control) returns redis ok
+    mockFetch(coreOk, { checks: { redis: { status: 'ok', latency_ms: 8 } } })
+    const { services, score } = await callGET()
+
+    // Verify Redis is parsed correctly from 8766
+    const redis = findRedis(services)
+    expect(redis.status).toBe('ok')
+    expect(redis.latencyMs).toBe(8)
+
+    // Verify AKASHA and LiteLLM are ok (coreOk has memory & docker checks = 'ok')
+    const akasha = services.find(s => s.name === 'AKASHA')
+    expect(akasha!.status).toBe('ok')
+    const litellm = services.find(s => s.name === 'LiteLLM')
+    expect(litellm!.status).toBe('ok')
+
+    // Score should be high: at minimum 30 (AKASHA) + 20 (LiteLLM) + 10 (Redis) + some from Core
+    // In test environment with fast mocks, Core latency is ~0ms which classifies as offline,
+    // so score = 30 + 20 + 10 = 60. Verify all non-core services are ok.
+    expect(score).toBeGreaterThanOrEqual(60)
   })
 })

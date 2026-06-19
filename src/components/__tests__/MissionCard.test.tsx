@@ -9,7 +9,8 @@ import MissionCard, { type MissionCardData } from '../MissionCard'
 const mockAddToast = vi.fn()
 
 vi.mock('@/stores/uiStore', () => ({
-  useUiStore: () => mockAddToast,
+  useUiStore: (selector: (s: { addToast: typeof mockAddToast }) => unknown) =>
+    selector({ addToast: mockAddToast }),
 }))
 
 // ── base card fixture ──────────────────────────────────────────────────────
