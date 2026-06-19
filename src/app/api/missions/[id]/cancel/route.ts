@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   let body: Record<string, unknown> = {}
   try {
     body = await req.json()
@@ -12,7 +13,7 @@ export async function POST(
   }
 
   try {
-    const res = await fetch(`http://localhost:8766/missions/${params.id}/cancel`, {
+    const res = await fetch(`http://localhost:8766/missions/${id}/cancel`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(body),
@@ -20,11 +21,13 @@ export async function POST(
     })
 
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      return NextResponse.json(
-        { error: `omnis-control respondeu ${res.status}`, detail: text },
-        { status: res.status }
-      )
+      let payload: unknown
+      try {
+        payload = await res.json()
+      } catch {
+        payload = { error: `omnis-control respondeu ${res.status}` }
+      }
+      return NextResponse.json(payload, { status: res.status })
     }
 
     const data = await res.json()
