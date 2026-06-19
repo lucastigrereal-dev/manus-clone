@@ -98,7 +98,6 @@ describe('MissionCard — botão Cancelar', () => {
     expect(init.method).toBe('POST')
     expect(JSON.parse(init.body as string)).toEqual({
       reason: 'user_request',
-      cancelled_by: 'lucas',
     })
   })
 

@@ -43,7 +43,7 @@ const FALLBACK: HealthResponse = {
 }
 
 function classify(ms: number): ServiceHealth['status'] {
-  if (ms <= 0) return 'offline'
+  if (ms < 0) return 'offline'  // sentinel: fetch failed
   if (ms < 100) return 'ok'
   if (ms < 500) return 'slow'
   return 'offline'
@@ -109,8 +109,8 @@ export async function GET() {
 
     const services: ServiceHealth[] = [
       { name: 'OMNIS Core', status: coreStatus, latencyMs: coreMs, port: 8765 },
-      { name: 'AKASHA',     status: akashaOk ? 'ok' : 'offline', latencyMs: akashaOk ? 12 : 0,  port: 5432 },
-      { name: 'LiteLLM',   status: litellmOk ? 'ok' : 'offline', latencyMs: litellmOk ? 78 : 0, port: 4001 },
+      { name: 'AKASHA',     status: akashaOk ? 'ok' : 'offline', latencyMs: 0, port: 5432 },
+      { name: 'LiteLLM',   status: litellmOk ? 'ok' : 'offline', latencyMs: 0, port: 4001 },
       { name: 'Redis',      status: mapRedisStatus(redisRaw), latencyMs: redisLatency, port: 6379 },
     ]
 

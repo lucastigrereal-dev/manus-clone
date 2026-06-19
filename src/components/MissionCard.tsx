@@ -79,7 +79,7 @@ export default function MissionCard({
       const res = await fetch(`/api/missions/${id}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'user_request', cancelled_by: 'lucas' }),
+        body: JSON.stringify({ reason: 'user_request' }),
       })
       setConfirmOpen(false)
       if (res.status === 200) {
