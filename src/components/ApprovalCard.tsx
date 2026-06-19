@@ -8,6 +8,8 @@ export interface ApprovalItem {
   risk_level: string
   mission_id?: string | null
   created_at?: string
+  /** Present when this approval is for a factory publish action (Wave 3). */
+  action_id?: string
 }
 
 interface ApprovalCardProps {

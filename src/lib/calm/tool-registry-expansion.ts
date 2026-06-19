@@ -82,4 +82,15 @@ export const EXPANSION_TOOLS: Record<string, ToolDefinition> = {
     result_card: 'FocusBrutalCard',
     description: 'Ativa modo foco brutal — esconde tudo, mostra 1 ação',
   },
+  'factory.decide': {
+    key: 'factory.decide',
+    endpoint: '/api/factory/publish',
+    method: 'POST',
+    risk_level: 'R2',
+    needs_approval: true,
+    produces_stream: false,
+    produces_artifact: false,
+    result_card: 'text',
+    description: 'Aprova ou rejeita uma ação de publicação do factory (Wave 3)',
+  },
 }

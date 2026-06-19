@@ -334,7 +334,7 @@ export default function MissionRunner({ text, onDone }: MissionRunnerProps) {
   }
 
   // ── 4. Decisão de aprovação ──
-  function handleDecision(_approvalId: string, decision: 'approve' | 'reject' | 'modify') {
+  function handleDecision(approvalId: string, decision: 'approve' | 'reject' | 'modify') {
     if (decision === 'reject') {
       setErrorMsg('Missão rejeitada pelo operador')
       setPhase('error')
@@ -345,8 +345,22 @@ export default function MissionRunner({ text, onDone }: MissionRunnerProps) {
       setPhase('error')
       return
     }
-    // approve → abre stream
+    // approve → registra a decisão no backend, depois abre stream
     const run_id = runIdRef.current
+    const actionId = approvalItem?.action_id
+
+    const endpoint = actionId
+      ? `/api/factory/publish/${actionId}/decide`
+      : `/api/approvals/${approvalId}/decide`
+
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'approve' }),
+    }).catch(() => {
+      // decide call is best-effort; stream proceeds regardless
+    })
+
     if (run_id) openStream(run_id)
   }
 
