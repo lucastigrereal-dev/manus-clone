@@ -49,33 +49,62 @@ function classify(ms: number): ServiceHealth['status'] {
   return 'offline'
 }
 
+function mapRedisStatus(s: string): ServiceHealth['status'] {
+  if (s === 'ok') return 'ok'
+  if (s === 'degraded') return 'slow'
+  return 'offline' // 'down', 'unknown', missing, etc.
+}
+
 export async function GET() {
   const start = Date.now()
   try {
-    const res = await fetch('http://localhost:8765/health', {
-      signal: AbortSignal.timeout(3000),
-      headers: { Accept: 'application/json' },
-    })
-    const latencyMs = Date.now() - start
-    const coreStatus = classify(latencyMs)
+    const [coreResult, controlResult] = await Promise.allSettled([
+      fetch('http://localhost:8765/health', {
+        signal: AbortSignal.timeout(3000),
+        headers: { Accept: 'application/json' },
+      }),
+      fetch('http://localhost:8766/health', {
+        signal: AbortSignal.timeout(3000),
+        headers: { Accept: 'application/json' },
+      }),
+    ])
 
-    if (!res.ok) {
-      return NextResponse.json(FALLBACK)
+    const latencyMs = Date.now() - start
+
+    // Redis (8766) — parse regardless of core status
+    const controlData = controlResult.status === 'fulfilled' && controlResult.value.ok
+      ? await controlResult.value.json().catch(() => null)
+      : null
+    const redisRaw = controlData?.checks?.redis?.status ?? 'unknown'
+    const redisLatency: number = controlData?.checks?.redis?.latency_ms ?? 0
+
+    // Core (8765)
+    const coreRes = coreResult.status === 'fulfilled' && coreResult.value.ok ? coreResult.value : null
+    if (!coreRes) {
+      const fallbackWithRedis = {
+        ...FALLBACK,
+        services: FALLBACK.services.map(s =>
+          s.name === 'Redis'
+            ? { ...s, status: mapRedisStatus(redisRaw), latencyMs: redisLatency }
+            : s
+        ),
+      }
+      return NextResponse.json({ ...fallbackWithRedis, score: computeScore(fallbackWithRedis.services) })
     }
 
-    const data = await res.json()
+    const coreStatus = classify(latencyMs)
+    const data = await coreRes.json()
 
     // Map OMNIS health checks to subsystem statuses
     const checks = data.checks ?? {}
     const akashaOk = checks.memory?.status === 'ok' || checks.memory?.status === 'healthy'
     const litellmOk = checks.docker?.status === 'ok' || checks.docker?.status === 'healthy'
-    const redisOk = true // Redis not separately checked by OMNIS health; assume ok if core is ok
 
     const services: ServiceHealth[] = [
       { name: 'OMNIS Core', status: coreStatus, latencyMs, port: 8765 },
       { name: 'AKASHA',     status: akashaOk ? 'ok' : 'offline', latencyMs: akashaOk ? 12 : 0,  port: 5432 },
       { name: 'LiteLLM',   status: litellmOk ? 'ok' : 'offline', latencyMs: litellmOk ? 78 : 0, port: 4001 },
-      { name: 'Redis',      status: redisOk && coreStatus !== 'offline' ? 'ok' : 'offline', latencyMs: 3, port: 6379 },
+      { name: 'Redis',      status: mapRedisStatus(redisRaw), latencyMs: redisLatency, port: 6379 },
     ]
 
     return NextResponse.json({ services, score: computeScore(services), timestamp: new Date().toISOString() } satisfies HealthResponse)
