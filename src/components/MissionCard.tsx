@@ -16,6 +16,9 @@ export interface MissionCardData {
   ts: string | Date
   factory: string
   estimatedCostUsd?: number
+}
+
+interface MissionCardProps extends MissionCardData {
   onCancel?: (id: string) => void
 }
 
@@ -59,7 +62,7 @@ export default function MissionCard({
   factory,
   estimatedCostUsd,
   onCancel,
-}: MissionCardData) {
+}: MissionCardProps) {
   const badge = STATUS_BADGE[status]
   const riskColor = RISK_COLORS[risk_level]
   const date = ts instanceof Date ? ts : new Date(ts)
@@ -152,6 +155,7 @@ export default function MissionCard({
         {canCancel && (
           <div className="mt-3 flex justify-end">
             <button
+              disabled={cancelling}
               onClick={() => setConfirmOpen(true)}
               style={{
                 fontSize: '11px',
@@ -160,13 +164,14 @@ export default function MissionCard({
                 border: '1px solid rgba(239,68,68,0.55)',
                 color: '#ef4444',
                 backgroundColor: 'transparent',
-                cursor: 'pointer',
+                cursor: cancelling ? 'not-allowed' : 'pointer',
                 lineHeight: '1.5',
                 fontWeight: 500,
                 transition: 'opacity 0.15s',
+                opacity: cancelling ? 0.4 : 1,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.75' }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+              onMouseEnter={(e) => { if (!cancelling) e.currentTarget.style.opacity = '0.75' }}
+              onMouseLeave={(e) => { if (!cancelling) e.currentTarget.style.opacity = '1' }}
             >
               Cancelar
             </button>
